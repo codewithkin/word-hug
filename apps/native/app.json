@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "word-hug",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "word-hug",
+    "slug": "word-hug",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

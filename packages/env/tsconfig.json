@@ -1,0 +1,3 @@
+{
+  "extends": "@word-hug/config/tsconfig.base.json"
+}
