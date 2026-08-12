@@ -54,10 +54,6 @@ plans/
 systems/
 progress/
 
-# Design extraction output — regenerate with `node designs/extract.mjs`.
-# designs/*.html (the raw exports) ARE tracked and are the source of truth.
-designs/
-
 # Datamuse response cache (validator spike)
 .cache/
 
