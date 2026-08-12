@@ -1,0 +1,18 @@
+{
+  "name": "@word-hug/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "test:parity": "node test/design-parity.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@word-hug/config": "workspace:*",
+    "typescript": "^6.0.3"
+  }
+}
