@@ -49,6 +49,13 @@ lerna-debug.log*
 coverage
 .nyc_output
 
+# Internal planning docs (local only, not shipped)
+plans/
+systems/
+
+# Datamuse response cache (validator spike)
+.cache/
+
 # Misc
 *.tgz
 .cache
