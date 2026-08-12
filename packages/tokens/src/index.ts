@@ -141,42 +141,129 @@ export const dark: Palette = {
 export const palettes = { light, dark } as const;
 export type ThemeName = keyof typeof palettes;
 
-/**
- * Type families. Baloo 2 carries every heading and the puzzle words; Nunito
- * carries body copy. Custom families do NOT synthesise weights on either
- * platform — every weight used must be a loaded face or the wrong one renders
- * silently (D-003).
- */
-export const font = {
-  display: 'Baloo 2',
-  body: 'Nunito',
-} as const;
+/* ───────────────────────────── TYPOGRAPHY ───────────────────────────── */
 
-/** The only weights present in the designs. Do not invent others. */
+/**
+ * Word Hug is a SINGLE-FAMILY interface. Baloo 2 appears on all 84 screens;
+ * Nunito appears on none of them — it is the design export page's own chrome,
+ * not app UI, and tokenising it was a session-1 error caught by re-reading.
+ *
+ * Custom families do NOT synthesise weights on iOS or Android. Every weight
+ * below must be a bundled face or the wrong one renders silently (D-003).
+ */
+export const font = { display: 'Baloo 2' } as const;
+
+/** The only three weights in the designs. Do not invent others (D-003). */
 export const weight = { regular: '700', bold: '800', heavy: '900' } as const;
 
 /**
- * Size ramp. The designs use 41 distinct sizes including half-pixels
- * (16.5, 14.5, 13.5) — this is the common spine, not an exhaustive list.
- * When a screen uses a size that is not here, use the screen's value.
+ * Size ramp, from the designs. Half-pixel sizes are real and deliberate.
+ * This is the common spine, not an exhaustive list — when a screen uses a
+ * size that is not here, use the screen's value, not the nearest token.
  */
 export const size = {
+  micro: 11.5,
   xs: 12,
   sm: 13,
+  smAlt: 13.5,
   base: 14,
   md: 16,
-  lg: 20,
-  xl: 24,
-  xxl: 26,
-  display: 34,
+  lg: 17,
+  xl: 20,
+  xxl: 22,
+  h3: 24,
+  h2: 26,
+  h1: 28,
+  display: 32,
+  displayLg: 34,
 } as const;
 
-/** 16 is the workhorse; 999 is the pill. */
-export const radius = { card: 16, pill: 999 } as const;
+export const tracking = { tight: '0em', label: '0.18em', wide: '0.06em' } as const;
 
 /**
- * The signature elevation: a hard offset with no blur, which is what gives
- * the interface its chunky, tactile feel. A soft blur here would quietly
- * change the whole product's character.
+ * Reusable text presets — the size/weight/tracking combinations the designs
+ * actually pair, rather than a grid of every possibility. Reach for these
+ * before composing a one-off.
  */
-export const elevation = { restY: 5, pressedY: 2, blur: 0 } as const;
+export const text = {
+  /** Screen titles and the puzzle answer. */
+  display: { fontFamily: font.display, fontSize: size.displayLg, fontWeight: weight.bold },
+  /** Section headings. */
+  h1: { fontFamily: font.display, fontSize: size.h1, fontWeight: weight.bold },
+  h2: { fontFamily: font.display, fontSize: size.h2, fontWeight: weight.bold },
+  h3: { fontFamily: font.display, fontSize: size.h3, fontWeight: weight.bold },
+  /** The three clue words on a puzzle screen. */
+  clue: { fontFamily: font.display, fontSize: size.xxl, fontWeight: weight.bold },
+  /** Buttons and list rows. */
+  action: { fontFamily: font.display, fontSize: size.xl, fontWeight: weight.bold },
+  body: { fontFamily: font.display, fontSize: size.md, fontWeight: weight.bold },
+  bodySm: { fontFamily: font.display, fontSize: size.base, fontWeight: weight.bold },
+  /** Uppercase eyebrow labels — always heavy, always widely tracked. */
+  label: {
+    fontFamily: font.display,
+    fontSize: size.xs,
+    fontWeight: weight.heavy,
+    letterSpacing: tracking.label,
+    textTransform: 'uppercase' as const,
+  },
+  caption: { fontFamily: font.display, fontSize: size.smAlt, fontWeight: weight.heavy },
+} as const;
+
+/* ────────────────────────── SPACING & GEOMETRY ───────────────────────── */
+
+/**
+ * Spacing is hand-tuned, not a 4pt or 8pt grid: the designs use every value
+ * from 1 to 14, then 16, 19, 24 and 36. Do not round a design's 19px to 20 to
+ * make it fit a scale — the scale is descriptive, not prescriptive.
+ */
+export const space = {
+  hair: 1,
+  xxs: 2,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  base: 10,
+  lg: 12,
+  xl: 14,
+  xxl: 16,
+  section: 19,
+  screen: 24,
+  screenLg: 36,
+} as const;
+
+/**
+ * Radii. 16 is the workhorse and 999 the pill.
+ * NOTE: 46px is the device mockup's own corner and is NOT a UI value (D-001).
+ */
+export const radius = {
+  hair: 3,
+  sm: 10,
+  md: 14,
+  card: 16,
+  lg: 20,
+  xl: 22,
+  pill: 999,
+} as const;
+
+/**
+ * The signature elevation: a hard vertical offset with ZERO blur, which is
+ * what makes the interface feel chunky and tactile. A soft blurred shadow is
+ * the reflexive choice and would quietly change the product's character (D-004).
+ *
+ * There are five levels in the designs, not one. 4 and 3 are the workhorses;
+ * session 1 tokenised only 5 and was wrong.
+ */
+export const elevation = {
+  blur: 0,
+  /** Rest offsets in px, by prominence. */
+  sm: 2,
+  md: 3,
+  base: 4,
+  lg: 5,
+  xl: 6,
+  /** Pressed state reduces the offset — it never adds blur. */
+  pressed: 2,
+} as const;
+
+/** Build the shadow string for a level. Colour comes from the palette. */
+export const shadow = (y: number, color: string) => `0 ${y}px 0 ${color}`;

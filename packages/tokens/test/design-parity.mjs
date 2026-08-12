@@ -107,6 +107,41 @@ const lk = Object.keys(themes.light.tokens).sort().join(',');
 const dk = Object.keys(themes.dark.tokens).sort().join(',');
 if (lk !== dk) failures.push('light and dark define different token keys');
 
+// ── 2b. Geometry and type tokens must also exist in the designs ────────────
+const allDesign = [...themes.light.files, ...themes.dark.files].join('\n');
+
+/** Pull a numeric token group out of the source, e.g. `size` or `radius`. */
+function numericGroup(name) {
+  const start = src.indexOf(`export const ${name} = {`);
+  if (start === -1) return {};
+  const body = src.slice(start, src.indexOf('} as const', start));
+  const out = {};
+  for (const m of body.matchAll(/(\w+):\s*([\d.]+)\s*,/g)) out[m[1]] = m[2];
+  return out;
+}
+
+for (const [key, px] of Object.entries(numericGroup('size'))) {
+  if (!allDesign.includes(`font-size:${px}px`)) failures.push(`size.${key} = ${px}px — no screen uses it`);
+}
+for (const [key, px] of Object.entries(numericGroup('radius'))) {
+  if (!allDesign.includes(`border-radius:${px}px`)) failures.push(`radius.${key} = ${px}px — no screen uses it`);
+}
+for (const [key, y] of Object.entries(numericGroup('elevation'))) {
+  if (key === 'blur') continue;
+  if (!allDesign.includes(`box-shadow:0 ${y}px 0`)) failures.push(`elevation.${key} = ${y} — no screen uses a 0 ${y}px 0 shadow`);
+}
+for (const [key, px] of Object.entries(numericGroup('space'))) {
+  if (!allDesign.includes(`gap:${px}px`) && !allDesign.includes(`padding:${px}px`))
+    warnings.push(`space.${key} = ${px}px — appears as neither a gap nor a padding`);
+}
+
+// Single-family interface. Nunito is the export page's chrome, not app UI.
+if (!/font\s*=\s*\{\s*display:\s*'Baloo 2'/.test(src)) failures.push('font.display must be Baloo 2');
+// Match it as a *value* only — the source comments mention Nunito precisely to
+// explain that it is not an app font, and those must not trip the check.
+if (/:\s*'Nunito'/.test(src)) failures.push('Nunito used as a font value — it is the design export\'s chrome, not app UI');
+if (!allDesign.includes('Baloo 2')) failures.push('Baloo 2 not found in designs — extraction may be stale');
+
 // ── 3. Sanity: the check must be looking at something ──────────────────────
 const tokenCount = Object.keys(themes.light.tokens).length;
 if (tokenCount < 10) failures.push(`only parsed ${tokenCount} tokens — the parser is probably broken`);

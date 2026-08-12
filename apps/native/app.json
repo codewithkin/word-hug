@@ -8,10 +8,16 @@
     },
     "name": "word-hug",
     "slug": "word-hug",
-    "plugins": ["expo-font"],
+    "plugins": [
+      "expo-font",
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "android": {
+      "package": "com.codewithkin.wordhug"
     }
   }
 }
