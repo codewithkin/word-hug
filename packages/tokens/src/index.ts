@@ -68,174 +68,6 @@ export interface Palette {
   textSecondary: string;
   textMuted: string;
   textFaint: string;
-
-  /* ── The puzzle board ──────────────────────────────────────────────────
-   * Added session 2, read off 09-daily-puzzle-{light,dark}. These are NOT
-   * derivable from the base palette: in dark, the clue card is `surface`
-   * but the answer tile is #4A3193 and the keycap is #3E2884, three
-   * different purples. Reaching for `surface` for all three is the
-   * plausible-and-wrong move. Shared by Daily, Archive and Pack puzzles.
-   */
-
-  /** The three clue rows (GREEN / BOAT / LIGHT). */
-  clueCard: string;
-  clueCardShadow: string;
-  clueText: string;
-  /** The dashed "?" box at the right of each clue row. */
-  clueSlot: string;
-  clueSlotBorder: string;
-  clueSlotText: string;
-
-  /** The answer tiles the player fills in. */
-  answerTile: string;
-  answerTileShadow: string;
-  answerTileText: string;
-  /** The tile holding the caret. Its border and caret are `primary`. */
-  answerTileActive: string;
-  answerTileActiveShadow: string;
-  /** Tiles not yet reached. Sunken, with an inset top shadow. */
-  answerTileEmpty: string;
-  answerTileEmptyShadow: string;
-
-  /** The letter keys. */
-  keyCap: string;
-  keyCapShadow: string;
-  keyCapText: string;
-
-  /** The "PUZZLE 128 · TUESDAY" pill. A translucent wash, not a solid. */
-  chipSurface: string;
-  chipText: string;
-
-  /**
-   * The small round ornaments in the header and hint button. Each is a solid
-   * fill with an inset shadow that gives it a pressed, enamel-badge feel.
-   * These four are identical in both themes; `badgeShadow` is not.
-   */
-  coinGlyph: string;
-  coinDotShadow: string;
-  streakDotShadow: string;
-  hintGlyphShadow: string;
-  badgeShadow: string;
-
-  /**
-   * The scrim behind a sheet or dialog (`position:absolute;inset:0` in the
-   * overlay designs). In light this is `rgba(58,42,24,0.28)` — the same value
-   * as the device mockup's drop shadow, used here as real UI. See the Note
-   * (session 2) in the parity test for why that stopped being a failure.
-   */
-  backdrop: string;
-
-  /* ── Onboarding and system chrome ──────────────────────────────────────
-   * Added session 3, read off 04-welcome, 05-try-the-game, 06-the-ritual,
-   * 07-notification-priming, 08-drop-in, 01-loading and 02-error, both
-   * themes. Everything here appears on at least two screens; the handful of
-   * colours that appear exactly once are written inline on their screen with
-   * the design file named, rather than tokenised into something that sounds
-   * general and is not.
-   *
-   * The reason this group has to exist at all: light pairs these differently
-   * from dark. `pillText` and `textQuiet` are the SAME colour in light
-   * (#9C8A73) and two different colours in dark (#B6A4E4 / #8F79D4). One
-   * token for both would be correct in light and wrong in dark — the exact
-   * shape of the session-1 `onPrimary` bug.
-   */
-
-  /** The unfilled progress pips in the onboarding header, and the loading dots. */
-  stepDotInactive: string;
-  /** Label inside a small raised pill — "Skip", "Nudge". */
-  pillText: string;
-  /**
-   * Quiet standalone text: the eyebrow above a step, and the secondary text
-   * link under a primary button ("Not now", "Back to today's puzzle").
-   */
-  textQuiet: string;
-  /** The 2.5px rule under that text link. Not a border token — it is the link. */
-  linkRule: string;
-  /** The faintest readable text in the app: helper lines and timestamps. */
-  textWhisper: string;
-
-  /** A letter key the player has already used. Present, not gone. */
-  keyCapDim: string;
-  keyCapDimShadow: string;
-  keyCapDimText: string;
-
-  /**
-   * A recessive fill that is not a card: the hint bar in onboarding step 2 and
-   * the dropped tile on the error screen. Light warms it; dark deepens it.
-   */
-  surfaceQuiet: string;
-  surfaceQuietShadow: string;
-
-  /** The tinted square behind the coral streak dot. Coral at ~8% in both themes. */
-  highlightWash: string;
-
-  /* ── The solve celebration ─────────────────────────────────────────────
-   * Added session 3, read off a-solve-celebration-{light,dark}.
-   */
-
-  /**
-   * The wash the celebration sits on. NOT `backdrop`: that is a scrim that
-   * dims what is behind it, and this is a near-opaque sheet of the screen's
-   * own ground (0.93 / 0.94) that all but replaces it. The board stays
-   * faintly visible underneath, which is the point — the answer is still
-   * there, it is just no longer the thing you are looking at.
-   */
-  overlayWash: string;
-
-  /** The panel holding the three compound words. Its own fill, not a card. */
-  solvePanel: string;
-  solvePanelShadow: string;
-
-  /**
-   * The teal when it is TYPE rather than a fill. Light can use `accent`
-   * itself; dark cannot — #17A398 on #2A1B58 is too dark to read, so the
-   * design brightens it to #2ED3C0. Using `accent` for both is the
-   * plausible-and-wrong move here.
-   */
-  accentText: string;
-
-  /* ── The puzzle board's submit button ──────────────────────────────────
-   * Added session 3, read off 11-archive-puzzle-{light,dark}. The → button
-   * before the word is long enough to check: flat, with no shadow at all,
-   * which is the only place in the app where a control has no elevation.
-   * That absence IS the disabled state — there is no greyed-out amber, no
-   * reduced opacity, and nothing that reads as a refusal (rule 1).
-   */
-  submitIdle: string;
-  submitIdleText: string;
-
-  /* ── Lists, cards and figures ──────────────────────────────────────────
-   * Added session 3, read off 16-settings, 17-how-to-play and 18-stats.
-   *
-   * The teal now has THREE tokens — `accent`, `accentText`, `accentMid` —
-   * and all three are #17A398 in light. Dark splits them: a fill stays
-   * #17A398, type on a panel goes to #2ED3C0, and a figure or a progress bar
-   * lands between at #1FBFB0. Anyone reading only the light designs would
-   * merge all three and be right about half the app.
-   */
-
-  /** The 1.5px line between rows inside a settings card. */
-  rowDivider: string;
-  /** The moving part of a toggle. */
-  toggleKnob: string;
-  /**
-   * The inset shadow inside a toggle's track — the same in both themes,
-   * because it is a shadow cast by the amber onto itself. See
-   * SHARED_BY_DESIGN in the parity test.
-   */
-  toggleTrackShadow: string;
-  /** The › and ↗ at the end of a tappable row. */
-  disclosure: string;
-
-  /** The uppercase eyebrow inside a card ("WORKED EXAMPLE", "YOUR PACKS"). */
-  cardLabel: string;
-  /** The even smaller, wider-tracked label under a big figure on Stats. */
-  statLabel: string;
-
-  /** The teal as a figure or a progress bar. Between `accent` and `accentText`. */
-  accentMid: string;
-  /** The coral as type. Dark brightens it; light does not need to. */
-  highlightText: string;
 }
 
 export const light: Palette = {
@@ -269,70 +101,6 @@ export const light: Palette = {
   textSecondary: '#6E5B44',
   textMuted: '#8C7A66',
   textFaint: '#A6866B',
-
-  clueCard: '#FFFFFF',
-  clueCardShadow: '#EBD6B0',
-  clueText: '#3A2A18',
-  clueSlot: '#FFF3DE',
-  clueSlotBorder: '#E0C795',
-  clueSlotText: '#C9AC79',
-
-  answerTile: '#FFFFFF',
-  answerTileShadow: '#E4CFA8',
-  answerTileText: '#3A2A18',
-  answerTileActive: '#FFF7E6',
-  answerTileActiveShadow: '#E9A413',
-  answerTileEmpty: '#F3E3C4',
-  answerTileEmptyShadow: 'rgba(160,130,80,0.18)',
-
-  keyCap: '#FFF0CE',
-  keyCapShadow: '#E9D6A8',
-  keyCapText: '#6E5B44',
-
-  chipSurface: 'rgba(58,42,24,0.07)',
-  chipText: '#7C6A55',
-
-  coinGlyph: '#8A5A00',
-  coinDotShadow: 'rgba(158,102,0,0.35)',
-  streakDotShadow: 'rgba(160,45,25,0.35)',
-  hintGlyphShadow: 'rgba(158,102,0,0.3)',
-  badgeShadow: 'rgba(160,45,25,0.4)',
-
-  backdrop: 'rgba(58,42,24,0.28)',
-
-  stepDotInactive: '#EBD9BB',
-  pillText: '#9C8A73',
-  textQuiet: '#9C8A73',
-  linkRule: '#E4CFA8',
-  textWhisper: '#B0A08A',
-
-  keyCapDim: '#EFE1C4',
-  keyCapDimShadow: '#DFCEA8',
-  keyCapDimText: '#BFAE92',
-
-  surfaceQuiet: '#FFF0CE',
-  surfaceQuietShadow: '#E9D6A8',
-
-  highlightWash: '#FFECE6',
-
-  overlayWash: 'rgba(255,244,226,0.93)',
-  solvePanel: '#FFF9EF',
-  solvePanelShadow: '#E0C795',
-  accentText: '#17A398',
-
-  submitIdle: '#F3E3C4',
-  submitIdleText: '#CBB795',
-
-  rowDivider: '#F5EBD9',
-  toggleKnob: '#FFF9EF',
-  toggleTrackShadow: 'rgba(158,102,0,0.28)',
-  disclosure: '#C0AE95',
-
-  cardLabel: '#B59A6C',
-  statLabel: '#96836D',
-
-  accentMid: '#17A398',
-  highlightText: '#FF6B4A',
 };
 
 export const dark: Palette = {
@@ -368,85 +136,6 @@ export const dark: Palette = {
   textSecondary: '#B29CE8',
   textMuted: '#A79A8E',
   textFaint: '#6B5DA6',
-
-  // Three different purples where light uses white three times. `surface`
-  // for all of them is the plausible-and-wrong simplification.
-  clueCard: '#33206B',
-  clueCardShadow: '#1C1040',
-  clueText: '#FFF6E8',
-  clueSlot: '#291958',
-  clueSlotBorder: '#5B3FA6',
-  clueSlotText: '#8F79D4',
-
-  answerTile: '#4A3193',
-  answerTileShadow: '#24144F',
-  answerTileText: '#FFF6E8',
-  answerTileActive: '#3A2478',
-  // Dark keeps the neutral shadow under the active tile; light goes amber.
-  answerTileActiveShadow: '#24144F',
-  answerTileEmpty: '#251652',
-  answerTileEmptyShadow: 'rgba(0,0,0,0.28)',
-
-  keyCap: '#3E2884',
-  keyCapShadow: '#21134B',
-  keyCapText: '#E8DDFF',
-
-  chipSurface: 'rgba(255,243,222,0.08)',
-  chipText: '#B6A4E4',
-
-  coinGlyph: '#8A5A00',
-  coinDotShadow: 'rgba(158,102,0,0.35)',
-  streakDotShadow: 'rgba(160,45,25,0.35)',
-  hintGlyphShadow: 'rgba(158,102,0,0.3)',
-  // The one ornament shadow that does change: deeper and cooler in dark.
-  badgeShadow: 'rgba(120,30,15,0.5)',
-
-  // Not a darker version of light's scrim — a different colour entirely.
-  backdrop: 'rgba(8,4,20,0.5)',
-
-  stepDotInactive: '#3D2874',
-  // Light uses #9C8A73 for BOTH of these. Dark does not. Collapsing them into
-  // one token is the plausible-and-wrong move this pair exists to prevent.
-  pillText: '#B6A4E4',
-  textQuiet: '#8F79D4',
-  linkRule: '#4A3193',
-  textWhisper: '#7C68B8',
-
-  keyCapDim: '#2B1A5E',
-  // Not `surfaceAltShadow` (#24144F) — the used-key shadow is deeper.
-  keyCapDimShadow: '#1B0F41',
-  keyCapDimText: '#7C68B8',
-
-  surfaceQuiet: '#2B1A5E',
-  surfaceQuietShadow: '#1B0F41',
-
-  // Light washes the coral with white; dark washes it with the ground, which
-  // lands somewhere closer to maroon. Neither is the other with an alpha.
-  highlightWash: '#4A1F2E',
-
-  overlayWash: 'rgba(26,15,56,0.94)',
-  // Not `surfaceAlt` (#2B1A5E). One digit apart and read off a different screen.
-  solvePanel: '#2A1B58',
-  solvePanelShadow: '#160C33',
-  // Brighter than `accent`, because here it is type on a dark panel.
-  accentText: '#2ED3C0',
-
-  submitIdle: '#2B1A5E',
-  submitIdleText: '#5A458F',
-
-  rowDivider: '#3D2874',
-  // Not `surfaceInset`-by-accident: the knob really is the darkest fill in
-  // the palette in dark, and the lightest in light.
-  toggleKnob: '#1A0F38',
-  toggleTrackShadow: 'rgba(158,102,0,0.28)',
-  disclosure: '#6D5DA6',
-
-  cardLabel: '#8F79D4',
-  statLabel: '#A392D2',
-
-  // The third teal. A fill stays #17A398, type goes #2ED3C0, a figure sits here.
-  accentMid: '#1FBFB0',
-  highlightText: '#FF7F5F',
 };
 
 export const palettes = { light, dark } as const;
@@ -466,35 +155,6 @@ export const font = { display: 'Baloo 2' } as const;
 
 /** The only three weights in the designs. Do not invent others (D-003). */
 export const weight = { regular: '700', bold: '800', heavy: '900' } as const;
-
-/**
- * The family names React Native must actually be given.
- *
- * `fontFamily: 'Baloo 2'` + `fontWeight: '800'` does NOT work for a custom
- * family on iOS or Android — the weight is ignored and one arbitrary face
- * renders. Every style must name its bundled face directly (D-003), which is
- * why these exist alongside `font`/`weight` rather than instead of them.
- *
- * ── The 900 problem, found session 2 ──────────────────────────────────────
- * The designs set `font-weight:900` on eyebrow labels, the chip text and the
- * coin/streak counts. **Baloo 2 has no 900 face.** Its weight axis stops at
- * 800, and @expo-google-fonts/baloo-2 ships 400/500/600/700/800 — no Black.
- * The browser that rendered the design export synthesised the extra weight;
- * a phone will not. So `heavy` resolves to the 800 face: the heaviest Baloo 2
- * that exists, and a visible-but-honest difference from the export on those
- * few labels. The alternative — leaving `fontWeight: '900'` in the styles —
- * silently drops to a system font, which is much worse and much harder to
- * spot. Flagged to the owner; see progress/04-changelog.md, session 2.
- * ──────────────────────────────────────────────────────────────────────────
- */
-export const face = {
-  regular: 'Baloo2_700Bold',
-  bold: 'Baloo2_800ExtraBold',
-  heavy: 'Baloo2_800ExtraBold',
-} as const;
-
-/** The distinct faces that must be loaded at startup. Two, not three. */
-export const facesToLoad = ['Baloo2_700Bold', 'Baloo2_800ExtraBold'] as const;
 
 /**
  * Size ramp, from the designs. Half-pixel sizes are real and deliberate.
@@ -524,32 +184,29 @@ export const tracking = { tight: '0em', label: '0.18em', wide: '0.06em' } as con
  * Reusable text presets — the size/weight/tracking combinations the designs
  * actually pair, rather than a grid of every possibility. Reach for these
  * before composing a one-off.
- *
- * `fontFamily` names the bundled face and there is deliberately NO
- * `fontWeight`: setting both on a custom family makes Android pick a face by
- * itself and quietly ignore the one you asked for (D-003).
  */
 export const text = {
   /** Screen titles and the puzzle answer. */
-  display: { fontFamily: face.bold, fontSize: size.displayLg },
+  display: { fontFamily: font.display, fontSize: size.displayLg, fontWeight: weight.bold },
   /** Section headings. */
-  h1: { fontFamily: face.bold, fontSize: size.h1 },
-  h2: { fontFamily: face.bold, fontSize: size.h2 },
-  h3: { fontFamily: face.bold, fontSize: size.h3 },
+  h1: { fontFamily: font.display, fontSize: size.h1, fontWeight: weight.bold },
+  h2: { fontFamily: font.display, fontSize: size.h2, fontWeight: weight.bold },
+  h3: { fontFamily: font.display, fontSize: size.h3, fontWeight: weight.bold },
   /** The three clue words on a puzzle screen. */
-  clue: { fontFamily: face.bold, fontSize: size.xxl },
+  clue: { fontFamily: font.display, fontSize: size.xxl, fontWeight: weight.bold },
   /** Buttons and list rows. */
-  action: { fontFamily: face.bold, fontSize: size.xl },
-  body: { fontFamily: face.bold, fontSize: size.md },
-  bodySm: { fontFamily: face.bold, fontSize: size.base },
+  action: { fontFamily: font.display, fontSize: size.xl, fontWeight: weight.bold },
+  body: { fontFamily: font.display, fontSize: size.md, fontWeight: weight.bold },
+  bodySm: { fontFamily: font.display, fontSize: size.base, fontWeight: weight.bold },
   /** Uppercase eyebrow labels — always heavy, always widely tracked. */
   label: {
-    fontFamily: face.heavy,
+    fontFamily: font.display,
     fontSize: size.xs,
+    fontWeight: weight.heavy,
     letterSpacing: tracking.label,
     textTransform: 'uppercase' as const,
   },
-  caption: { fontFamily: face.heavy, fontSize: size.smAlt },
+  caption: { fontFamily: font.display, fontSize: size.smAlt, fontWeight: weight.heavy },
 } as const;
 
 /* ────────────────────────── SPACING & GEOMETRY ───────────────────────── */

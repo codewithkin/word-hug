@@ -10,20 +10,7 @@
     "slug": "word-hug",
     "plugins": [
       "expo-font",
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#FFF4E2",
-          "dark": {
-            "image": "./assets/images/splash-icon-dark.png",
-            "backgroundColor": "#1A0F38"
-          }
-        }
-      ]
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -31,9 +18,6 @@
     },
     "android": {
       "package": "com.codewithkin.wordhug"
-    },
-    "ios": {
-      "bundleIdentifier": "com.codewithkin.wordhug"
     }
   }
 }
