@@ -2,4 +2,16 @@
 @import "uniwind";
 @import "heroui-native/styles";
 
+/*
+ * Word Hug's palette. GENERATED from packages/tokens/src/index.ts — see
+ * packages/tokens/scripts/emit-theme-css.mjs.
+ *
+ * This import MUST come after heroui-native/styles. Both files write into
+ * `@layer theme`, so the later one wins, and this is what re-points heroui's
+ * --background / --surface / --foreground at the Word Hug colours. Move it
+ * above the heroui import and every heroui component silently reverts to
+ * stock zinc-and-blue while still looking perfectly self-consistent.
+ */
+@import "./theme.generated.css";
+
 @source './node_modules/heroui-native/lib';

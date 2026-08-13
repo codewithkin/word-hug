@@ -62,3 +62,7 @@ progress/
 .cache
 tmp
 temp
+
+# Session-3 transfer scaffolding (see scripts/session-2-cleanup.sh)
+.trash-session-3/
+.cache/

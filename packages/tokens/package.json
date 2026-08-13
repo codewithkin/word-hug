@@ -8,7 +8,9 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "test:parity": "node test/design-parity.mjs"
+    "build:css": "node scripts/emit-theme-css.mjs",
+    "test:parity": "node test/design-parity.mjs",
+    "test": "node test/design-parity.mjs && node test/design-parity.mjs --tamper && node scripts/emit-theme-css.mjs --check && node scripts/emit-theme-css.mjs --tamper"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

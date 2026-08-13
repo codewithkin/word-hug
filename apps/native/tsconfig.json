@@ -6,5 +6,12 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": [
+    "node_modules",
+    // Boilerplate relocated out of app/ in session 2 and awaiting deletion by
+    // scripts/session-2-cleanup.sh. It is dead code; typechecking it would
+    // fail on navigators the project no longer depends on.
+    ".trash-session-2"
+  ]
 }
