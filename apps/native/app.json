@@ -1,13 +1,37 @@
 {
   "expo": {
-    "scheme": "word-hug",
-    "userInterfaceStyle": "automatic",
-    "orientation": "default",
-    "web": {
-      "bundler": "metro"
-    },
-    "name": "word-hug",
+    "name": "Word Hug",
     "slug": "word-hug",
+    "version": "1.0.0",
+    "scheme": "word-hug",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "icon": {
+      "light": "./assets/images/icon.png",
+      "dark": "./assets/images/icon-dark.png",
+      "tinted": "./assets/images/icon-tinted.png"
+    },
+    "ios": {
+      "bundleIdentifier": "com.codewithkin.wordhug",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.codewithkin.wordhug",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#FFF4E2"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png"
+    },
     "plugins": [
       "expo-font",
       "expo-router",
@@ -23,17 +47,25 @@
             "backgroundColor": "#1A0F38"
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#FFB020"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {},
+          "ios": {}
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "android": {
-      "package": "com.codewithkin.wordhug"
-    },
-    "ios": {
-      "bundleIdentifier": "com.codewithkin.wordhug"
     }
   }
 }
