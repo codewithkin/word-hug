@@ -80,7 +80,7 @@ export default function NotFoundScreen() {
             <Text className="text-center font-wh-bold text-[36px] leading-[40px] text-wh-clue-text">
               There&apos;s no puzzle{'\n'}at this address
             </Text>
-            <Text className="max-w-[28ch] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
+            <Text className="max-w-[260px] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
               Might be an old link, or a day that hasn&apos;t happened yet.
             </Text>
           </Appear>

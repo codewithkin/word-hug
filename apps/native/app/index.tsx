@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,6 +44,54 @@ const CLUES = ['GREEN', 'BOAT', 'LIGHT'];
 const ANSWER = ['H', 'O'];
 const ANSWER_LENGTH = 5;
 const KEYS = ['U', 'S', 'E', 'T', 'R'];
+
+/**
+ * TEMPORARY. The scaffolding link row at the bottom of this screen, grouped so
+ * that twenty-two entries stay readable. Deleted with the probe.
+ *
+ * `href` is a literal in each tuple rather than built, because expo-router's
+ * typed routes check it at compile time — a renamed file becomes a type error
+ * here instead of a dead link nobody notices.
+ */
+const LINK_GROUPS: { label: string; links: [string, Href][] }[] = [
+  {
+    label: 'Screens',
+    links: [
+      ['Probe', '/token-probe'],
+      ['Onboarding', '/onboarding/welcome'],
+      ['Archive', '/archive-puzzle'],
+      ['Pack', '/pack-puzzle'],
+      ['Settings', '/settings'],
+      ['How', '/how-to-play'],
+      ['Stats', '/stats'],
+      ['Loading', '/loading'],
+      ['Error', '/error'],
+    ],
+  },
+  {
+    label: 'Overlays',
+    links: [
+      ['Solve', '/celebration'],
+      ['Nudge', '/nudge-picker'],
+      ['Coins', '/zero-coin'],
+      ['Locked', '/archive-locked'],
+      ['Offline', '/offline-notice'],
+    ],
+  },
+  {
+    label: 'States',
+    links: [
+      ['Solved', '/solved-today'],
+      ['Wrong', '/wrong-guess'],
+      ['Near', '/near-miss'],
+      ['Caught', '/caught-up'],
+      ['Day one', '/archive-day-one'],
+      ['No packs', '/nothing-owned'],
+      ['No store', '/store-unreachable'],
+      ['No stats', '/stats-empty'],
+    ],
+  },
+];
 
 /** Roughly when each band of the screen arrives, in ms. */
 const IN = {
@@ -298,41 +346,30 @@ export default function DailyPuzzle() {
             presented for real.
           · loading / error — states the app enters on its own, rarely and
             not on demand.
+          · the STATES row — alternate states of screens that already exist.
+            Every one of them is a branch the game logic will produce, not a
+            place anyone navigates to. See the note in `app/_layout.tsx`.
         */}
-        <View className="flex-row flex-wrap items-center justify-center gap-x-4 gap-y-1 py-2">
-          <Link href="/token-probe" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Probe
-          </Link>
-          <Link href="/celebration" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Solve
-          </Link>
-          <Link
-            href="/onboarding/welcome"
-            className="font-wh-regular text-wh-sm text-wh-text-muted"
-          >
-            Onboarding
-          </Link>
-          <Link href="/archive-puzzle" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Archive
-          </Link>
-          <Link href="/pack-puzzle" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Pack
-          </Link>
-          <Link href="/settings" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Settings
-          </Link>
-          <Link href="/how-to-play" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            How
-          </Link>
-          <Link href="/stats" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Stats
-          </Link>
-          <Link href="/loading" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Loading
-          </Link>
-          <Link href="/error" className="font-wh-regular text-wh-sm text-wh-text-muted">
-            Error
-          </Link>
+        <View className="gap-[3px] py-2">
+          {LINK_GROUPS.map((group) => (
+            <View
+              key={group.label}
+              className="flex-row flex-wrap items-center justify-center gap-x-[13px]"
+            >
+              <Text className="font-wh-heavy text-[9px] uppercase tracking-wh-label text-wh-text-whisper">
+                {group.label}
+              </Text>
+              {group.links.map(([label, href]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="font-wh-regular text-wh-sm text-wh-text-muted"
+                >
+                  {label}
+                </Link>
+              ))}
+            </View>
+          ))}
         </View>
       </View>
     </View>

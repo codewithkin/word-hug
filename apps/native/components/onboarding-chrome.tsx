@@ -127,7 +127,7 @@ export function StepCopy({
       >
         {title}
       </Text>
-      <Text className="max-w-[29ch] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
+      <Text className="max-w-[270px] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
         {body}
       </Text>
     </Appear>

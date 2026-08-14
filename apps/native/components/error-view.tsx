@@ -93,7 +93,7 @@ export function ErrorView({ onRetry, onHome, error }: ErrorViewProps) {
             <Text className="text-center font-wh-bold text-[36px] leading-[40px] text-wh-clue-text">
               That didn&apos;t go{'\n'}to plan
             </Text>
-            <Text className="max-w-[28ch] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
+            <Text className="max-w-[260px] text-center font-wh-regular text-wh-md leading-6 text-wh-chip-text">
               Nothing is lost — your solves and streak are safe on this phone. Try again, or head
               back to today&apos;s puzzle.
             </Text>
@@ -102,7 +102,7 @@ export function ErrorView({ onRetry, onHome, error }: ErrorViewProps) {
                 "That didn't go to plan" is the correct thing to show a player
                 and a useless thing to show whoever has to fix it. */}
             {__DEV__ && error?.message ? (
-              <Text className="max-w-[34ch] text-center font-wh-regular text-wh-sm text-wh-text-whisper">
+              <Text className="max-w-[310px] text-center font-wh-regular text-wh-sm text-wh-text-whisper">
                 {error.message}
               </Text>
             ) : null}
