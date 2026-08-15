@@ -361,7 +361,9 @@ export default function DailyPuzzle() {
               </Text>
               {group.links.map(([label, href]) => (
                 <Link
-                  key={href}
+                  // The label, not the href: `Href` widens to an object under
+                  // typed routes and is not a valid React key.
+                  key={label}
                   href={href}
                   className="font-wh-regular text-wh-sm text-wh-text-muted"
                 >
