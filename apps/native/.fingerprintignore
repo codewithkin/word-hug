@@ -1,0 +1,6 @@
+# This app uses CNG (no android/ or ios/ committed). EAS runs `expo prebuild`
+# before it calculates the expo-updates runtime version, which makes the
+# generated native dirs show up as `bareNativeDir` sources on the server but
+# not locally. Exclude them so both sides fingerprint the same tree.
+android/**/*
+ios/**/*
