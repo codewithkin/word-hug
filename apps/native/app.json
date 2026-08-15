@@ -10,18 +10,18 @@
     "runtimeVersion": {
       "policy": "fingerprint"
     },
-    "icon": {
-      "light": "./assets/images/icon.png",
-      "dark": "./assets/images/icon-dark.png",
-      "tinted": "./assets/images/icon-tinted.png"
-    },
+    "icon": "./assets/images/icon.png",
     "ios": {
       "bundleIdentifier": "com.codewithkin.wordhug",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png",
+        "tinted": "./assets/images/icon-tinted.png"
+      }
     },
     "android": {
       "package": "com.codewithkin.wordhug",
-      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
