@@ -1,23 +1,80 @@
 {
   "expo": {
-    "scheme": "word-hug",
-    "userInterfaceStyle": "automatic",
-    "orientation": "default",
-    "web": {
-      "bundler": "metro"
-    },
-    "name": "word-hug",
+    "name": "Word Hug",
     "slug": "word-hug",
+    "version": "1.0.0",
+    "scheme": "word-hug",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "icon": "./assets/images/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.codewithkin.wordhug",
+      "supportsTablet": true,
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png",
+        "tinted": "./assets/images/icon-tinted.png"
+      }
+    },
+    "android": {
+      "package": "com.codewithkin.wordhug",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#FFF4E2"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png"
+    },
     "plugins": [
       "expo-font",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF4E2",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#1A0F38"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#FFB020"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {},
+          "ios": {}
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "android": {
-      "package": "com.codewithkin.wordhug"
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4323d71a-497c-413b-ae76-0a7e5a9f33c0"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4323d71a-497c-413b-ae76-0a7e5a9f33c0"
     }
   }
 }

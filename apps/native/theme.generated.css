@@ -1,0 +1,427 @@
+/*
+ * GENERATED FILE — DO NOT EDIT.
+ *
+ * Source:    packages/tokens/src/index.ts
+ * Regenerate: node packages/tokens/scripts/emit-theme-css.mjs
+ * Verify:     node packages/tokens/scripts/emit-theme-css.mjs --check
+ *
+ * Edits here are silently destroyed on the next run, and --check will
+ * fail in the meantime. Change the tokens instead.
+ */
+
+@layer theme {
+  :root {
+    @variant light {
+      /* Word Hug palette */
+      --whv-ground: #EFE6DA;
+      --whv-surface: #FFFFFF;
+      --whv-surface-alt: #FFF9EF;
+      --whv-surface-sunken: #FFF4E2;
+      --whv-surface-inset: #FFF0CE;
+      --whv-surface-shadow: #E4CFA8;
+      --whv-surface-alt-shadow: #EBD6B0;
+      --whv-border: #3A2A18;
+      --whv-primary: #FFB020;
+      --whv-primary-shadow: #D98A00;
+      --whv-on-primary: #4A3000;
+      --whv-accent: #17A398;
+      --whv-accent-shadow: #0E7A72;
+      --whv-on-accent: #EAFFFC;
+      --whv-highlight: #FF6B4A;
+      --whv-text-primary: #3A2A18;
+      --whv-text-secondary: #6E5B44;
+      --whv-text-muted: #8C7A66;
+      --whv-text-faint: #A6866B;
+      --whv-clue-card: #FFFFFF;
+      --whv-clue-card-shadow: #EBD6B0;
+      --whv-clue-text: #3A2A18;
+      --whv-clue-slot: #FFF3DE;
+      --whv-clue-slot-border: #E0C795;
+      --whv-clue-slot-text: #C9AC79;
+      --whv-answer-tile: #FFFFFF;
+      --whv-answer-tile-shadow: #E4CFA8;
+      --whv-answer-tile-text: #3A2A18;
+      --whv-answer-tile-active: #FFF7E6;
+      --whv-answer-tile-active-shadow: #E9A413;
+      --whv-answer-tile-empty: #F3E3C4;
+      --whv-answer-tile-empty-shadow: rgba(160,130,80,0.18);
+      --whv-key-cap: #FFF0CE;
+      --whv-key-cap-shadow: #E9D6A8;
+      --whv-key-cap-text: #6E5B44;
+      --whv-chip-surface: rgba(58,42,24,0.07);
+      --whv-chip-text: #7C6A55;
+      --whv-coin-glyph: #8A5A00;
+      --whv-coin-dot-shadow: rgba(158,102,0,0.35);
+      --whv-streak-dot-shadow: rgba(160,45,25,0.35);
+      --whv-hint-glyph-shadow: rgba(158,102,0,0.3);
+      --whv-badge-shadow: rgba(160,45,25,0.4);
+      --whv-backdrop: rgba(58,42,24,0.28);
+      --whv-step-dot-inactive: #EBD9BB;
+      --whv-pill-text: #9C8A73;
+      --whv-text-quiet: #9C8A73;
+      --whv-link-rule: #E4CFA8;
+      --whv-text-whisper: #B0A08A;
+      --whv-key-cap-dim: #EFE1C4;
+      --whv-key-cap-dim-shadow: #DFCEA8;
+      --whv-key-cap-dim-text: #BFAE92;
+      --whv-surface-quiet: #FFF0CE;
+      --whv-surface-quiet-shadow: #E9D6A8;
+      --whv-highlight-wash: #FFECE6;
+      --whv-overlay-wash: rgba(255,244,226,0.93);
+      --whv-solve-panel: #FFF9EF;
+      --whv-solve-panel-shadow: #E0C795;
+      --whv-accent-text: #17A398;
+      --whv-submit-idle: #F3E3C4;
+      --whv-submit-idle-text: #CBB795;
+      --whv-row-divider: #F5EBD9;
+      --whv-toggle-knob: #FFF9EF;
+      --whv-toggle-track-shadow: rgba(158,102,0,0.28);
+      --whv-disclosure: #C0AE95;
+      --whv-card-label: #B59A6C;
+      --whv-stat-label: #96836D;
+      --whv-accent-mid: #17A398;
+      --whv-highlight-text: #FF6B4A;
+      --whv-ground-puzzle-0: #FFE6B4;
+      --whv-ground-puzzle-stop-0: 0;
+      --whv-ground-puzzle-1: #FFF4E2;
+      --whv-ground-puzzle-stop-1: 0.58;
+      --whv-ground-puzzle-2: #FFF9EF;
+      --whv-ground-puzzle-stop-2: 1;
+      --whv-ground-puzzle-cx: 0.5;
+      --whv-ground-puzzle-cy: 0;
+      --whv-ground-puzzle-rx: 1.15;
+      --whv-ground-puzzle-ry: 0.7;
+      --whv-ground-puzzle-offset-0: #FFE6B4;
+      --whv-ground-puzzle-offset-stop-0: 0;
+      --whv-ground-puzzle-offset-1: #FFF4E2;
+      --whv-ground-puzzle-offset-stop-1: 0.6;
+      --whv-ground-puzzle-offset-2: #FFF9EF;
+      --whv-ground-puzzle-offset-stop-2: 1;
+      --whv-ground-puzzle-offset-cx: 0.2;
+      --whv-ground-puzzle-offset-cy: 0;
+      --whv-ground-puzzle-offset-rx: 0.9;
+      --whv-ground-puzzle-offset-ry: 1.4;
+
+      /* heroui-native, re-pointed at the palette above */
+      --background: var(--whv-ground);
+      --foreground: var(--whv-text-primary);
+      --surface: var(--whv-surface);
+      --surface-foreground: var(--whv-text-primary);
+      --surface-secondary: var(--whv-surface-alt);
+      --surface-secondary-foreground: var(--whv-text-primary);
+      --surface-tertiary: var(--whv-surface-sunken);
+      --surface-tertiary-foreground: var(--whv-text-primary);
+      --overlay: var(--whv-surface);
+      --overlay-foreground: var(--whv-text-primary);
+      --backdrop: var(--whv-backdrop);
+      --muted: var(--whv-text-muted);
+      --default: var(--whv-surface-sunken);
+      --default-foreground: var(--whv-text-primary);
+      --accent: var(--whv-primary);
+      --accent-foreground: var(--whv-on-primary);
+      --field-background: var(--whv-surface);
+      --field-foreground: var(--whv-text-primary);
+      --field-placeholder: var(--whv-text-muted);
+      --field-border: var(--whv-border);
+      --success: var(--whv-accent);
+      --success-foreground: var(--whv-on-accent);
+      --warning: var(--whv-primary);
+      --warning-foreground: var(--whv-on-primary);
+      --danger: var(--whv-highlight);
+      --danger-foreground: var(--whv-on-primary);
+      --segment: var(--whv-surface);
+      --segment-foreground: var(--whv-text-primary);
+      --border: var(--whv-border);
+      --separator: var(--whv-border);
+      --focus: var(--whv-primary);
+      --link: var(--whv-text-primary);
+      /* D-004: the elevation is a hard offset with zero blur. */
+      --surface-shadow: 0 4px 0 var(--whv-surface-shadow);
+      --overlay-shadow: 0 5px 0 var(--whv-surface-shadow);
+      --field-shadow: 0 3px 0 var(--whv-surface-shadow);
+    }
+    @variant dark {
+      /* Word Hug palette */
+      --whv-ground: #0C0718;
+      --whv-surface: #33206B;
+      --whv-surface-alt: #2B1A5E;
+      --whv-surface-sunken: #251652;
+      --whv-surface-inset: #1A0F38;
+      --whv-surface-shadow: #1C1040;
+      --whv-surface-alt-shadow: #24144F;
+      --whv-border: #FFF3DE;
+      --whv-primary: #FFB020;
+      --whv-primary-shadow: #C97F0B;
+      --whv-on-primary: #3B2400;
+      --whv-accent: #17A398;
+      --whv-accent-shadow: #0B655F;
+      --whv-on-accent: #EAFFFC;
+      --whv-highlight: #FF6B4A;
+      --whv-text-primary: #FFF3DE;
+      --whv-text-secondary: #B29CE8;
+      --whv-text-muted: #A79A8E;
+      --whv-text-faint: #6B5DA6;
+      --whv-clue-card: #33206B;
+      --whv-clue-card-shadow: #1C1040;
+      --whv-clue-text: #FFF6E8;
+      --whv-clue-slot: #291958;
+      --whv-clue-slot-border: #5B3FA6;
+      --whv-clue-slot-text: #8F79D4;
+      --whv-answer-tile: #4A3193;
+      --whv-answer-tile-shadow: #24144F;
+      --whv-answer-tile-text: #FFF6E8;
+      --whv-answer-tile-active: #3A2478;
+      --whv-answer-tile-active-shadow: #24144F;
+      --whv-answer-tile-empty: #251652;
+      --whv-answer-tile-empty-shadow: rgba(0,0,0,0.28);
+      --whv-key-cap: #3E2884;
+      --whv-key-cap-shadow: #21134B;
+      --whv-key-cap-text: #E8DDFF;
+      --whv-chip-surface: rgba(255,243,222,0.08);
+      --whv-chip-text: #B6A4E4;
+      --whv-coin-glyph: #8A5A00;
+      --whv-coin-dot-shadow: rgba(158,102,0,0.35);
+      --whv-streak-dot-shadow: rgba(160,45,25,0.35);
+      --whv-hint-glyph-shadow: rgba(158,102,0,0.3);
+      --whv-badge-shadow: rgba(120,30,15,0.5);
+      --whv-backdrop: rgba(8,4,20,0.5);
+      --whv-step-dot-inactive: #3D2874;
+      --whv-pill-text: #B6A4E4;
+      --whv-text-quiet: #8F79D4;
+      --whv-link-rule: #4A3193;
+      --whv-text-whisper: #7C68B8;
+      --whv-key-cap-dim: #2B1A5E;
+      --whv-key-cap-dim-shadow: #1B0F41;
+      --whv-key-cap-dim-text: #7C68B8;
+      --whv-surface-quiet: #2B1A5E;
+      --whv-surface-quiet-shadow: #1B0F41;
+      --whv-highlight-wash: #4A1F2E;
+      --whv-overlay-wash: rgba(26,15,56,0.94);
+      --whv-solve-panel: #2A1B58;
+      --whv-solve-panel-shadow: #160C33;
+      --whv-accent-text: #2ED3C0;
+      --whv-submit-idle: #2B1A5E;
+      --whv-submit-idle-text: #5A458F;
+      --whv-row-divider: #3D2874;
+      --whv-toggle-knob: #1A0F38;
+      --whv-toggle-track-shadow: rgba(158,102,0,0.28);
+      --whv-disclosure: #6D5DA6;
+      --whv-card-label: #8F79D4;
+      --whv-stat-label: #A392D2;
+      --whv-accent-mid: #1FBFB0;
+      --whv-highlight-text: #FF7F5F;
+      --whv-ground-puzzle-0: #2E1C60;
+      --whv-ground-puzzle-stop-0: 0;
+      --whv-ground-puzzle-1: #211447;
+      --whv-ground-puzzle-stop-1: 0.55;
+      --whv-ground-puzzle-2: #1A0F38;
+      --whv-ground-puzzle-stop-2: 1;
+      --whv-ground-puzzle-cx: 0.5;
+      --whv-ground-puzzle-cy: 0;
+      --whv-ground-puzzle-rx: 1.15;
+      --whv-ground-puzzle-ry: 0.7;
+      --whv-ground-puzzle-offset-0: #2E1C60;
+      --whv-ground-puzzle-offset-stop-0: 0;
+      --whv-ground-puzzle-offset-1: #211447;
+      --whv-ground-puzzle-offset-stop-1: 0.55;
+      --whv-ground-puzzle-offset-2: #1A0F38;
+      --whv-ground-puzzle-offset-stop-2: 1;
+      --whv-ground-puzzle-offset-cx: 0.5;
+      --whv-ground-puzzle-offset-cy: 0;
+      --whv-ground-puzzle-offset-rx: 1.15;
+      --whv-ground-puzzle-offset-ry: 0.7;
+
+      /* heroui-native, re-pointed at the palette above */
+      --background: var(--whv-ground);
+      --foreground: var(--whv-text-primary);
+      --surface: var(--whv-surface);
+      --surface-foreground: var(--whv-text-primary);
+      --surface-secondary: var(--whv-surface-alt);
+      --surface-secondary-foreground: var(--whv-text-primary);
+      --surface-tertiary: var(--whv-surface-sunken);
+      --surface-tertiary-foreground: var(--whv-text-primary);
+      --overlay: var(--whv-surface);
+      --overlay-foreground: var(--whv-text-primary);
+      --backdrop: var(--whv-backdrop);
+      --muted: var(--whv-text-muted);
+      --default: var(--whv-surface-sunken);
+      --default-foreground: var(--whv-text-primary);
+      --accent: var(--whv-primary);
+      --accent-foreground: var(--whv-on-primary);
+      --field-background: var(--whv-surface);
+      --field-foreground: var(--whv-text-primary);
+      --field-placeholder: var(--whv-text-muted);
+      --field-border: var(--whv-border);
+      --success: var(--whv-accent);
+      --success-foreground: var(--whv-on-accent);
+      --warning: var(--whv-primary);
+      --warning-foreground: var(--whv-on-primary);
+      --danger: var(--whv-highlight);
+      --danger-foreground: var(--whv-on-primary);
+      --segment: var(--whv-surface);
+      --segment-foreground: var(--whv-text-primary);
+      --border: var(--whv-border);
+      --separator: var(--whv-border);
+      --focus: var(--whv-primary);
+      --link: var(--whv-text-primary);
+      /* D-004: the elevation is a hard offset with zero blur. */
+      --surface-shadow: 0 4px 0 var(--whv-surface-shadow);
+      --overlay-shadow: 0 5px 0 var(--whv-surface-shadow);
+      --field-shadow: 0 3px 0 var(--whv-surface-shadow);
+    }
+  }
+}
+
+@theme inline static {
+  /* Colours: --color-wh-x gives bg-wh-x, text-wh-x, border-wh-x. */
+  --color-wh-ground: var(--whv-ground);
+  --color-wh-surface: var(--whv-surface);
+  --color-wh-surface-alt: var(--whv-surface-alt);
+  --color-wh-surface-sunken: var(--whv-surface-sunken);
+  --color-wh-surface-inset: var(--whv-surface-inset);
+  --color-wh-surface-shadow: var(--whv-surface-shadow);
+  --color-wh-surface-alt-shadow: var(--whv-surface-alt-shadow);
+  --color-wh-border: var(--whv-border);
+  --color-wh-primary: var(--whv-primary);
+  --color-wh-primary-shadow: var(--whv-primary-shadow);
+  --color-wh-on-primary: var(--whv-on-primary);
+  --color-wh-accent: var(--whv-accent);
+  --color-wh-accent-shadow: var(--whv-accent-shadow);
+  --color-wh-on-accent: var(--whv-on-accent);
+  --color-wh-highlight: var(--whv-highlight);
+  --color-wh-text-primary: var(--whv-text-primary);
+  --color-wh-text-secondary: var(--whv-text-secondary);
+  --color-wh-text-muted: var(--whv-text-muted);
+  --color-wh-text-faint: var(--whv-text-faint);
+  --color-wh-clue-card: var(--whv-clue-card);
+  --color-wh-clue-card-shadow: var(--whv-clue-card-shadow);
+  --color-wh-clue-text: var(--whv-clue-text);
+  --color-wh-clue-slot: var(--whv-clue-slot);
+  --color-wh-clue-slot-border: var(--whv-clue-slot-border);
+  --color-wh-clue-slot-text: var(--whv-clue-slot-text);
+  --color-wh-answer-tile: var(--whv-answer-tile);
+  --color-wh-answer-tile-shadow: var(--whv-answer-tile-shadow);
+  --color-wh-answer-tile-text: var(--whv-answer-tile-text);
+  --color-wh-answer-tile-active: var(--whv-answer-tile-active);
+  --color-wh-answer-tile-active-shadow: var(--whv-answer-tile-active-shadow);
+  --color-wh-answer-tile-empty: var(--whv-answer-tile-empty);
+  --color-wh-answer-tile-empty-shadow: var(--whv-answer-tile-empty-shadow);
+  --color-wh-key-cap: var(--whv-key-cap);
+  --color-wh-key-cap-shadow: var(--whv-key-cap-shadow);
+  --color-wh-key-cap-text: var(--whv-key-cap-text);
+  --color-wh-chip-surface: var(--whv-chip-surface);
+  --color-wh-chip-text: var(--whv-chip-text);
+  --color-wh-coin-glyph: var(--whv-coin-glyph);
+  --color-wh-coin-dot-shadow: var(--whv-coin-dot-shadow);
+  --color-wh-streak-dot-shadow: var(--whv-streak-dot-shadow);
+  --color-wh-hint-glyph-shadow: var(--whv-hint-glyph-shadow);
+  --color-wh-badge-shadow: var(--whv-badge-shadow);
+  --color-wh-backdrop: var(--whv-backdrop);
+  --color-wh-step-dot-inactive: var(--whv-step-dot-inactive);
+  --color-wh-pill-text: var(--whv-pill-text);
+  --color-wh-text-quiet: var(--whv-text-quiet);
+  --color-wh-link-rule: var(--whv-link-rule);
+  --color-wh-text-whisper: var(--whv-text-whisper);
+  --color-wh-key-cap-dim: var(--whv-key-cap-dim);
+  --color-wh-key-cap-dim-shadow: var(--whv-key-cap-dim-shadow);
+  --color-wh-key-cap-dim-text: var(--whv-key-cap-dim-text);
+  --color-wh-surface-quiet: var(--whv-surface-quiet);
+  --color-wh-surface-quiet-shadow: var(--whv-surface-quiet-shadow);
+  --color-wh-highlight-wash: var(--whv-highlight-wash);
+  --color-wh-overlay-wash: var(--whv-overlay-wash);
+  --color-wh-solve-panel: var(--whv-solve-panel);
+  --color-wh-solve-panel-shadow: var(--whv-solve-panel-shadow);
+  --color-wh-accent-text: var(--whv-accent-text);
+  --color-wh-submit-idle: var(--whv-submit-idle);
+  --color-wh-submit-idle-text: var(--whv-submit-idle-text);
+  --color-wh-row-divider: var(--whv-row-divider);
+  --color-wh-toggle-knob: var(--whv-toggle-knob);
+  --color-wh-toggle-track-shadow: var(--whv-toggle-track-shadow);
+  --color-wh-disclosure: var(--whv-disclosure);
+  --color-wh-card-label: var(--whv-card-label);
+  --color-wh-stat-label: var(--whv-stat-label);
+  --color-wh-accent-mid: var(--whv-accent-mid);
+  --color-wh-highlight-text: var(--whv-highlight-text);
+
+  /* Gradient stops. React Native has no radial-gradient; these are read
+     with useCSSVariable and drawn with react-native-svg. */
+  --color-wh-ground-puzzle-0: var(--whv-ground-puzzle-0);
+  --wh-ground-puzzle-stop-0: var(--whv-ground-puzzle-stop-0);
+  --color-wh-ground-puzzle-1: var(--whv-ground-puzzle-1);
+  --wh-ground-puzzle-stop-1: var(--whv-ground-puzzle-stop-1);
+  --color-wh-ground-puzzle-2: var(--whv-ground-puzzle-2);
+  --wh-ground-puzzle-stop-2: var(--whv-ground-puzzle-stop-2);
+  --wh-ground-puzzle-cx: var(--whv-ground-puzzle-cx);
+  --wh-ground-puzzle-cy: var(--whv-ground-puzzle-cy);
+  --wh-ground-puzzle-rx: var(--whv-ground-puzzle-rx);
+  --wh-ground-puzzle-ry: var(--whv-ground-puzzle-ry);
+  --color-wh-ground-puzzle-offset-0: var(--whv-ground-puzzle-offset-0);
+  --wh-ground-puzzle-offset-stop-0: var(--whv-ground-puzzle-offset-stop-0);
+  --color-wh-ground-puzzle-offset-1: var(--whv-ground-puzzle-offset-1);
+  --wh-ground-puzzle-offset-stop-1: var(--whv-ground-puzzle-offset-stop-1);
+  --color-wh-ground-puzzle-offset-2: var(--whv-ground-puzzle-offset-2);
+  --wh-ground-puzzle-offset-stop-2: var(--whv-ground-puzzle-offset-stop-2);
+  --wh-ground-puzzle-offset-cx: var(--whv-ground-puzzle-offset-cx);
+  --wh-ground-puzzle-offset-cy: var(--whv-ground-puzzle-offset-cy);
+  --wh-ground-puzzle-offset-rx: var(--whv-ground-puzzle-offset-rx);
+  --wh-ground-puzzle-offset-ry: var(--whv-ground-puzzle-offset-ry);
+}
+
+@theme static {
+  /* Type. These are FAMILIES, not weights, and that is deliberate:
+     `font-wh-bold` sets fontFamily to the bundled ExtraBold face. There is
+     no --font-weight-wh-* here on purpose, because pairing a weight with a
+     custom family makes the platform pick its own face and ignore yours
+     (D-003). `heavy` is the 800 face too — Baloo 2 has no 900. */
+  --font-wh-regular: 'Baloo2_700Bold';
+  --font-wh-bold: 'Baloo2_800ExtraBold';
+  --font-wh-heavy: 'Baloo2_800ExtraBold';
+  --text-wh-micro: 11.5px;
+  --text-wh-xs: 12px;
+  --text-wh-sm: 13px;
+  --text-wh-sm-alt: 13.5px;
+  --text-wh-base: 14px;
+  --text-wh-md: 16px;
+  --text-wh-lg: 17px;
+  --text-wh-xl: 20px;
+  --text-wh-xxl: 22px;
+  --text-wh-h3: 24px;
+  --text-wh-h2: 26px;
+  --text-wh-h1: 28px;
+  --text-wh-display: 32px;
+  --text-wh-display-lg: 34px;
+  --tracking-wh-tight: 0em;
+  --tracking-wh-label: 0.18em;
+  --tracking-wh-wide: 0.06em;
+
+  /* Geometry. Descriptive, not prescriptive — a screen that uses 19px
+     should use 19px, not the nearest token. */
+  --radius-wh-hair: 3px;
+  --radius-wh-sm: 10px;
+  --radius-wh-md: 14px;
+  --radius-wh-card: 16px;
+  --radius-wh-lg: 20px;
+  --radius-wh-xl: 22px;
+  --radius-wh-pill: 999px;
+  --spacing-wh-hair: 1px;
+  --spacing-wh-xxs: 2px;
+  --spacing-wh-xs: 4px;
+  --spacing-wh-sm: 6px;
+  --spacing-wh-md: 8px;
+  --spacing-wh-base: 10px;
+  --spacing-wh-lg: 12px;
+  --spacing-wh-xl: 14px;
+  --spacing-wh-xxl: 16px;
+  --spacing-wh-section: 19px;
+  --spacing-wh-screen: 24px;
+  --spacing-wh-screen-lg: 36px;
+
+  /* Elevation offsets, in px, for building the hard shadow (D-004). */
+  --wh-elevation-blur: 0;
+  --wh-elevation-sm: 2;
+  --wh-elevation-md: 3;
+  --wh-elevation-base: 4;
+  --wh-elevation-lg: 5;
+  --wh-elevation-xl: 6;
+  --wh-elevation-pressed: 2;
+}

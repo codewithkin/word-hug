@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "app/**/*.tsx",
+    "components/**/*.tsx",
+    "contexts/**/*.tsx",
+    "lib/**/*.ts",
+    "theme/**/*.ts",
+    "uniwind-env.d.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": ["node_modules", ".trash-session-2"]
+}
