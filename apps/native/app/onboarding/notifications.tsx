@@ -8,6 +8,7 @@ import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { Appear } from '@/components/motion';
 import { OnboardingHeader, SkipButton, StepCopy } from '@/components/onboarding-chrome';
 import { PuzzleGround } from '@/components/puzzle-ground';
+import { parseTime, requestNotificationPermission, scheduleDailyNudge } from '@/lib/notifications';
 
 /**
  * ── 07 Notification Priming · onboarding step 4 of 5 ──────────────────────
@@ -34,11 +35,15 @@ import { PuzzleGround } from '@/components/puzzle-ground';
  * be wrong.
  *
  * ── STATE ─────────────────────────────────────────────────────────────────
- * The selected time is local state and goes nowhere yet: persisting it and
- * scheduling the notification need the storage layer (react-native-mmkv,
- * installed and still unused). ALLOW asks the OS for permission and continues
+ * ALLOW asks the OS for permission and, if it is given, schedules the daily
+ * reminder at the selected time through `lib/notifications`. It continues
  * either way — a refusal is not a failure state, and the flow must not
  * dead-end on one.
+ *
+ * The chosen time is still only local state. The OS holds the schedule itself,
+ * so the reminder survives without us, but **Settings cannot show what was
+ * chosen and cannot change it** until the storage layer lands
+ * (react-native-mmkv, installed and still unused).
  * ──────────────────────────────────────────────────────────────────────────
  */
 
@@ -49,15 +54,17 @@ export default function NotificationPriming() {
   const [selected, setSelected] = useState('9:00');
 
   async function allow() {
-    try {
-      // Imported lazily and defensively: a permission prompt failing must
-      // never be the reason someone cannot get past onboarding.
-      const Notifications = await import('expo-notifications');
-      await Notifications.requestPermissionsAsync();
-    } catch {
-      // No notifications module, or the user dismissed the OS sheet. Both are
-      // fine — the daily nudge is a nicety and the game works without it.
+    // Every call below is defensive by construction (see `lib/notifications`):
+    // a refused permission, or no notifications module at all, is fine — the
+    // daily nudge is a nicety and the game works without it. Nothing here is
+    // allowed to be the reason someone cannot get past onboarding.
+    const outcome = await requestNotificationPermission();
+
+    if (outcome === 'granted') {
+      const at = parseTime(selected);
+      if (at) await scheduleDailyNudge(at.hour, at.minute);
     }
+
     router.push('/onboarding/drop-in');
   }
 

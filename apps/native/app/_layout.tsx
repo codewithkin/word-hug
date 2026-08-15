@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorView } from '@/components/error-view';
 import { AppThemeProvider } from '@/contexts/app-theme-context';
+import { initNotifications } from '@/lib/notifications';
 import { FONT_MAP } from '@/theme/fonts';
 
 /**
@@ -72,6 +73,17 @@ const OVERLAY = {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONT_MAP);
+
+  /**
+   * The Android notification channel has to exist before anything is posted to
+   * it, and a channel created only inside onboarding would be missing for
+   * everyone who installed before this ran. Creating it at startup is cheap,
+   * idempotent, and asks for no permission — the OS prompt is still onboarding
+   * step 4's alone.
+   */
+  useEffect(() => {
+    void initNotifications();
+  }, []);
 
   useEffect(() => {
     // Hide on error too. A missing font is a visual bug worth seeing, not a
