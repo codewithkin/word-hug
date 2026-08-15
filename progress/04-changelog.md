@@ -4,6 +4,126 @@ Newest first. This is where the *reasoning* lives — git has the file list.
 
 ---
 
+## Session 5 — the build was broken, and nobody could have known
+
+**No screens built. The first build was not going to work, and now it does.**
+
+Session 5 was the first session with a working npm registry and outbound network.
+Every previous session's limits doc says the same three things — cannot install,
+cannot run `pnpm`, typecheck takes 90+ seconds so use stubs — and **all three were
+false here**. So the session spent itself running the tooling that four sessions had
+only been able to reason about. That turned out to be the right call within about
+ten minutes.
+
+### `expo prebuild` crashed on the config session 4 called complete
+
+```
+TypeError: [android.dangerous]: withAndroidDangerousBaseMod: url.startsWith is not a function
+```
+
+Session 4 set the top-level `icon` to `{ light, dark, tinted }` — correct for iOS 18's
+dark and tinted app icons, and the reason it was written that way. But **Android's icon
+generator reads the same top-level key**: `getIcon()` is `config.android?.icon ||
+config.icon`, and it hands whatever it finds to a function that calls `.startsWith()`
+on it. An object has no `.startsWith`. Prebuild dies before writing a single file.
+
+The fix is small — string at the top level, object under `ios.icon` — but the shape of
+the bug is the thing worth keeping. **A config key that two platforms read and only one
+of them accepts an object for.** It is invisible by inspection, it reads as obviously
+correct, and it fails on the platform the owner was about to build first.
+
+It also explains why `00-START-HERE.md`'s recommended smoke test did not catch it.
+`npx expo config --type prebuild` **passes** on the broken config — it evaluates the
+plugin chain and stops. The image writers, where this lives, only run under `prebuild`
+itself. The advice has been corrected in `02-dependencies.md` §4: run the prebuild.
+
+### The committed `android/` folder was quietly cancelling all of session 4
+
+`apps/native/.gitignore` has listed `android/` and `ios/` for some time. But 36 files
+under `apps/native/android/` were committed in `6a9d482` *before* that line existed,
+and git keeps tracking what it already tracks. `expo-doctor` states the consequence
+plainly: with native folders present, **EAS Build does not sync `scheme`, `orientation`,
+`userInterfaceStyle`, `icon`, `ios`, `android` or `plugins` from `app.json`.**
+
+Which is to say: the notification plugin, all nine icons, the splash, portrait lock and
+`newArchEnabled` — session 4's entire output — would have been ignored, and EAS would
+have built the original scaffold's Android project instead. `updates.ENABLED=false`, no
+notification icon, Expo's placeholder launcher icon. **And the build would have
+succeeded.** A green build producing the wrong app is a worse failure than a red one,
+and it would have been blamed on the screens.
+
+Untracked with `git rm -r --cached`. The project is CNG; the native folders are build
+output and belong to `.gitignore`, which is what it always said.
+
+### The notification dependency did not work, in the specific way native modules do not
+
+ALLOW called `requestPermissionsAsync()` and nothing else. That is enough to make the
+OS prompt appear, which is what makes it convincing — but **no Android channel was ever
+created and nothing was ever scheduled**. On Android 8+ the OS silently drops any
+notification posted to a channel that does not exist. Permission granted, prompt shown,
+consent given, and no reminder would ever have arrived, with no error anywhere to
+explain it.
+
+`lib/notifications.ts` now owns all of it: the channel (created at startup, so it also
+exists for anyone who installed before this), the permission request (which checks
+`getPermissionsAsync` first and honours `canAskAgain`, so nobody is re-prompted into a
+wall), and the actual `DAILY` schedule at the chosen time under a fixed identifier so
+re-scheduling replaces rather than stacks. Every call sits behind a lazy import and
+resolves to a benign value, keeping session 3's rule that **a refusal is not a failure
+state and onboarding must never dead-end on one**.
+
+Two things it deliberately does not do. A nudge arriving while the app is open is not
+thrown over the screen — you are already playing, and rule 3 says do not interrupt the
+solve; it goes to the tray instead. And the copy is a placeholder, because the design
+has the notification naming the day's three clue words, which needs the puzzle bank and
+cannot come from a string scheduled a day ahead. Both are flagged in
+`05-known-issues.md` §10, both are one-line changes in one file.
+
+The chosen time still is not persisted. The OS holds the schedule so the reminder
+survives, but Settings cannot show or change it until the storage layer lands. That
+boundary is now the only thing standing between step 4 and being genuinely finished.
+
+### Smaller things
+
+- **`expo-asset` was missing** — a required peer of `expo-audio`, and native. It had not
+  bitten because nothing imports `expo-audio` yet, but finding it after the build is a
+  second build, which is the one thing `02-dependencies.md` exists to prevent.
+- **`android.edgeToEdgeEnabled` is gone from `app.json`** — Android 16 makes edge-to-edge
+  mandatory and Expo now warns on the key. No behaviour change; every screen already
+  works from safe-area insets (D-001).
+- **A stray `app.json` at the repo root**, containing nothing but a duplicate EAS
+  `projectId`. Deleted.
+- **One real type error, fixed**: the temporary link row on Daily used `key={href}`, and
+  `Href` widens to an object under typed routes.
+- **`tsconfig.check.json` now includes `lib/`**, or the new module would have been
+  outside the only check the project has.
+
+### What was verified and is fine
+
+Worth recording, because each of these was an open worry:
+
+- **Autolinking under pnpm's `node-linker=isolated` works.** All 11 community native
+  modules resolve, plus every Expo module. This was flagged as a real risk and is not one.
+- **`POST_NOTIFICATIONS` is not supposed to be in the app manifest.** It ships in
+  `expo-notifications`' own manifest and arrives via Gradle merge. `02-dependencies.md`
+  §4 told the next agent to grep for it and panic; that grep is removed.
+- **The typecheck is clean and takes 3 seconds**, against the real declarations — so the
+  stub-based method in `00-START-HERE.md` can go. It was a workaround for a sandbox
+  limitation that was never actually tested.
+- **`expo-doctor` is at 19/21**, both remaining failures being the checks that need
+  `api.expo.dev` and `reactnative.directory`, which the sandbox blocks.
+
+### One gap in the record
+
+**There is no session 4 entry in this file.** `00-START-HERE.md` cites "§7" of this
+changelog for session 4's five recorded divergences and for the note that every price
+in the app is hard-coded and must come from RevenueCat. That section does not exist —
+it was never written, or was lost before it was committed. The divergences themselves
+are recorded in the screen files, but if the owner has session 4's notes anywhere, this
+is the file they belong in.
+
+---
+
 ## Session 3 — thirteen screens, and moti out
 
 **Thirteen screens built, 2 of 35 → 15 of 35.** All five onboarding steps,

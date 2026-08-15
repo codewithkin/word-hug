@@ -8,7 +8,7 @@ This file is self-contained. Read it fully before touching anything.
 > **`progress/03-screen-status.md` is which screens exist.** Check it before
 > promising anything about a screen — it is the only file that tracks that.
 
-**Last updated: end of session 4.**
+**Last updated: end of session 5.**
 
 ## Where the project actually is, in one table
 
@@ -41,21 +41,42 @@ So: if the owner has run it and reported anything, **that is the entire priority
 It outranks every item further down this file. Bug reports are the only real signal
 about appearance this project ever gets, and they arrive rarely.
 
+**Session 5 found the build itself was broken and fixed it.** If you are reading this
+because the owner tried session 4's instructions and hit a wall, that is why —
+`expo prebuild` crashed on `app.json`, and separately, EAS was going to ignore the
+whole of `app.json` anyway. Both fixed. `02-dependencies.md` §7 has the full account;
+the two-line version is that a config key Android and iOS both read only accepts an
+object on one of them, and that `apps/native/android/` was committed to git when it
+should never have been.
+
 If they have not run it yet, the thing to hand them is:
 
 ```
+pnpm install                      # REQUIRED — session 5 added expo-asset
+
 cd apps/native
-npx expo config --type prebuild   # catches a bad plugin in seconds, not in a build
-npx expo prebuild --clean         # app.json changed a lot in session 4
+npx expo prebuild --clean         # must succeed; it did not before session 5
 npx expo run:android              # or: eas build --profile development --platform all
 ```
 
-**`pnpm install` is no longer required** — session 4's two additions
-(`expo-build-properties`, `expo-application`) are installed and version-corrected.
+**Run `prebuild --clean` itself — do not substitute `expo config --type prebuild`.**
+That was session 4's recommended smoke test and it *passes* on a config that makes
+prebuild crash. It only evaluates the plugin chain; the image and manifest writers,
+which is where the crash was, run only under prebuild.
+
+**Never commit `apps/native/android/` or `ios/`.** This project is CNG: `app.json` is
+the source of truth and the native folders are build output. When they are committed,
+EAS Build silently stops syncing `plugins`, `icon`, `scheme`, `orientation`,
+`userInterfaceStyle`, `ios` and `android` — and builds successfully, with the wrong app.
 
 **The owner is on Windows.** `npx expo run:ios` cannot work there. iOS goes
 through EAS Build, which is why `apps/native/eas.json` exists with a
 `development` profile.
+
+**iOS has never been prebuilt.** Session 5 verified Android end to end; there is no
+`ios/` folder and no Mac in reach, so the first `eas build -p ios` is still the first
+time that config meets Xcode. `ios.icon` is the part to watch — it is the key that was
+moved.
 
 Then, in the app, walk the temporary link row at the bottom of the Daily screen.
 It is now **three labelled groups** — Screens / Overlays / States, 22 entries — and
@@ -73,6 +94,8 @@ fails in a way that looks like something else. The two that still lead:
    uppercase eyebrow in the app would lose its tracking and read as a font bug.
 
 The old #2 (`ch` units) and #5 (the Babel plugin) were both resolved in session 4.
+Session 5 added §10, the daily nudge — what to check on device now that it does
+something, and the two judgement calls made without the owner.
 
 ---
 
@@ -155,13 +178,16 @@ Divergences from a design are allowed but never silent: they go in the plan file
 | Tokens wired to UI | ✅ Generated CSS, imported, heroui re-pointed. UNVERIFIED. |
 | Fonts | ✅ Baloo 2, two faces. There is no 900 — see below. |
 | Motion | ✅ Reanimated 4.5 directly. moti removed session 3. UNVERIFIED. |
-| **`app.json`** | ✅ **Complete session 4.** All 9 icon assets wired, notifications plugin, newArch, portrait, runtimeVersion, EAS updates. |
+| **`app.json`** | ✅ **Fixed session 5, and prebuild now actually passes.** All 9 icon assets wired, notifications plugin, newArch, portrait, runtimeVersion, EAS updates. |
 | **Splash artwork** | ✅ **Generated session 4** from the design at 5x, both themes. |
 | **`eas.json`** | ✅ `apps/native/eas.json`, `development` profile. Needed for iOS — owner is on Windows. |
+| **Android prebuild** | ✅ **Verified session 5.** Generates cleanly; manifest, splash, notification icon and `updates.ENABLED=true` all confirmed in the output. |
+| **iOS prebuild** | ⚠️ **Never run.** No Mac in reach. First `eas build -p ios` is the first real test. |
+| **Daily notification** | ✅ **Works as of session 5** — `lib/notifications.ts`. Channel, permission, real DAILY schedule. Unverified on device. |
 | Screens | ✅ 28 of 35 — all **code-complete, unverified** |
 | Puzzle bank | ❌ Zero puzzles written |
 | Game logic | ❌ None. Every screen is static; content is hard-coded. |
-| Storage | ❌ `react-native-mmkv` installed, unused. No first-launch flag, no solves, no streak. |
+| Storage | ❌ `react-native-mmkv` installed, unused. No first-launch flag, no solves, no streak. **Now the one thing blocking the notification time from being remembered.** |
 
 ---
 
@@ -220,40 +246,42 @@ to add the pair to `packages/tokens` instead.
 
 ## Read this before you write a line
 
-- **You cannot install anything.** The npm registry returns 403 from the sandbox.
-  If you need a package, say so loudly — the owner has to do it.
-- **You cannot delete files.** `rm` returns `Operation not permitted`. `mv` works, so
-  relocate into `apps/native/_to_delete/` and tell the owner.
-- **You cannot commit, and you should not run git at all.** Every `git status` leaves
-  a `.git/index.lock` behind that cannot be unlinked, which then blocks the owner's
-  next commit. Read the working tree with `ls`, not with git.
-- **Commands are killed at ~45 seconds** and background processes do NOT survive
-  between them (each call is a fresh PID namespace).
+**Your sandbox is not the same as the last one. Test these; do not trust the table.**
+Sessions 1–4 all ran under limits that session 5 did not have, and four sessions of
+workarounds were built on top of them. Spend the first two minutes finding out which
+world you are in — it changes what the session is worth.
+
+| Capability | Sessions 1–4 | Session 5 |
+|---|---|---|
+| npm registry / `pnpm install` | ❌ 403 | ✅ works |
+| `rm`, `git`, commit, push | ❌ | ✅ all work |
+| `npx expo prebuild`, `expo-doctor` | ❌ never run | ✅ both run |
+| `tsc` against real declarations | ❌ ~90s, killed | ✅ **3 seconds, clean** |
+| Command timeout | ~45s | minutes |
+| **Run the app** | ❌ | ❌ **still never** |
+
+The last row does not change and is not a sandbox limit — it is the verification
+contract above. **You do not run the app.** Everything else, try it.
+
 - **`designs/*.html` are bundled pages.** Run `node designs/extract.mjs` and read
   `designs/extracted/`. Never edit the raw files.
+- **`apps/native/_to_delete/` exists** because earlier sessions could not delete files.
+  If `rm` works for you, it is safe to clear.
 
-### Typechecking — the method that works NOW
+### Typechecking
 
-**The session-3 method no longer works.** It said to copy the `.d.ts` files to fast
-local disk. That cannot be started: walking `apps/native/node_modules` over the bridge
-exceeds the command limit, so even the `find` that lists the files times out. `tsc -p
-tsconfig.check.json` run in place does not finish either (~90s+, killed at 45).
+```
+cd apps/native && npx tsc -p tsconfig.check.json --noEmit
+```
 
-**What session 4 did instead, and what works:**
+**Three seconds, and it was clean at the end of session 5** — including `lib/`, which
+session 5 added to the include list. Against the real declarations, so unlike the old
+stub method it does catch whether `className` is genuinely accepted by a component,
+whether a style key exists on `ViewStyle`, and Reanimated's generics.
 
-1. Copy the new sources plus the components they import into a scratch directory.
-2. Write an ambient `stubs.d.ts` declaring only the surface that code touches —
-   React, react-native, expo-router, Reanimated, uniwind, safe-area-context. Include
-   `JSX.IntrinsicAttributes { key?: any }` or every `.map()` is a false positive.
-3. Check under `strict` with `noUnusedLocals`.
-
-That catches wrong prop names, missing exports, typo'd imports and malformed JSX —
-which is most of what an agent gets wrong. It does **not** catch anything depending on
-the real declarations: whether `className` is genuinely accepted by a given component,
-whether a style key exists on RN's `ViewStyle`, or Reanimated's generics.
-
-**The real check is `npx tsc -p tsconfig.check.json --noEmit` on the owner's machine.**
-Ask for it; do not claim it has passed.
+If your sandbox cannot reach the registry and has no `node_modules`, the session-4
+scratch-directory-and-stubs method is in the git history of this file. It was a
+workaround for a limit that turned out not to be universal — check first.
 
 ---
 
@@ -263,8 +291,12 @@ Ask for it; do not claim it has passed.
 2. **If the probe is all-OK in both themes:** delete `app/token-probe.tsx` and the
    temporary link row at the bottom of the Daily screen.
 3. **The storage layer.** `react-native-mmkv` is installed and unused. It unlocks the
-   first-launch flag that gates onboarding, the notification time step 4 collects and
-   throws away, solves and the streak.
+   first-launch flag that gates onboarding, solves and the streak — and it is now the
+   *only* thing between onboarding step 4 and being finished. As of session 5 the
+   reminder is really scheduled with the OS, so it survives without us; what is still
+   missing is that nothing remembers **which** time was chosen, so Settings cannot show
+   it or change it. `lib/notifications.ts` already exposes `scheduleDailyNudge` and
+   `cancelDailyNudge` for that screen to call.
 4. **Real game state** — input, the guess, the gentle nudge. **All nine alternate
    states now exist to build against**, which is the point of having done them first:
    `/wrong-guess` and `/near-miss` are the two branches the guess handler produces,
@@ -310,6 +342,8 @@ not the thing that was wrong.**
 | `packages/tokens/src/index.ts` | Every design value | Tracked |
 | `apps/native/theme.generated.css` | Generated. Do not edit. | Tracked |
 | `apps/native/components/` | The shared spine — `chunky`, `motion`, `puzzle-ground`, `puzzle-board`, `actions`, `onboarding-chrome`, `screen-header`, `wordmark`, `error-view`, `sheet`, `notice`, `daily-chrome`, `empty-state` | Tracked |
+| `apps/native/lib/notifications.ts` | **The only file that talks to `expo-notifications`.** Channel, permission, daily schedule. | Tracked |
+| `apps/native/android/`, `ios/` | **Build output. Never commit these** — it makes EAS ignore `app.json`. | No — enforced |
 | `apps/native/app/onboarding/` | The five steps | Tracked |
 | `apps/native/app.json`, `eas.json` | Build config. Complete. | Tracked |
 | `apps/native/_to_delete/` | **Things an agent could not delete. Safe to remove.** | No |
