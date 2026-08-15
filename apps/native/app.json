@@ -70,11 +70,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "4323d71a-497c-413b-ae76-0a7e5a9f33c0"
+        "projectId": "0770a562-9212-4a59-9042-1a535c7bc086"
       }
     },
+    "owner": "codewithkin",
     "updates": {
-      "url": "https://u.expo.dev/4323d71a-497c-413b-ae76-0a7e5a9f33c0"
+      "url": "https://u.expo.dev/0770a562-9212-4a59-9042-1a535c7bc086"
     }
   }
 }
