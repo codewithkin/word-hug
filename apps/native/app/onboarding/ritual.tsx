@@ -127,7 +127,16 @@ export default function Ritual() {
           <StepCopy
             delay={300}
             title={'One puzzle a day,\nabout a minute'}
-            body="Miss a day and your streak just starts again — nothing else changes. The last seven stay open in the archive, so you can always catch up."
+            /* Session 8: this used to end "The last seven stay open in the
+               archive, so you can always catch up." The archive was retired in
+               the same session and the sentence became a promise about a
+               screen that no longer exists — the second worst kind of copy,
+               after copy that lies about something that does.
+
+               What replaced it is the thing that is actually true now: the
+               fifty levels are always there, at whatever pace, and missing a
+               day costs nothing but the number. */
+            body="Miss a day and your streak just starts again — nothing else changes. The fifty levels are always there, at whatever pace you like."
           />
 
           {/* ── The streak card ───────────────────────────────────────── */}

@@ -92,6 +92,43 @@ export interface ChunkyPressableProps extends Omit<PressableProps, 'style' | 'ch
 }
 
 /**
+ * Does this surface want to fill the space its parent gives it?
+ *
+ * ── The bug this exists to kill ───────────────────────────────────────────
+ * `ChunkyPressable` renders a `Pressable` wrapping an `Animated.View`, and
+ * `className` goes on the **inner** view. So a caller writing `flex-1` — the
+ * obvious thing, and what the three shop coin tiles did — puts `flex: 1` on a
+ * child whose parent has already shrink-wrapped to its content. The row's flex
+ * child is the `Pressable`, and nothing ever told it to grow. Result: three
+ * tiles huddled at the left of a wide row, which is exactly what the owner
+ * reported.
+ *
+ * Fixing it at the three call sites would have fixed three of them. This is a
+ * two-view component pretending to be one view, and every future caller would
+ * hit the same trap, so the component absorbs it: if the class list asks to
+ * grow, the outer `Pressable` grows too.
+ *
+ * Passing `flex: 1` down to the inner view as well is harmless and wanted — a
+ * `Pressable` is a column flex container, so the child stretches to its width
+ * and fills its height, which is what a tile in a row should do.
+ *
+ * A string scan rather than a new prop, deliberately: a `grow` prop would be a
+ * second way to say a thing the class list already says, and the two would
+ * drift.
+ *
+ * Only the three classes that mean "take the free space along the parent's
+ * main axis". `w-full` and `self-stretch` are deliberately **not** here: a
+ * `Pressable` lays its child out in a column, so those already resolve
+ * correctly on the inner view, and promoting them to `flex: 1` on the outer
+ * one would stretch surfaces that only asked to be wide.
+ */
+const GROW_CLASSES = /(?:^|\s)(?:flex-1|grow|flex-grow)(?:\s|$)/;
+
+function growsToFill(className?: string): boolean {
+  return className !== undefined && GROW_CLASSES.test(className);
+}
+
+/**
  * A chunky surface that gives under a finger.
  *
  * The whole illusion is that the surface is a physical thing sitting on a
@@ -130,6 +167,7 @@ export function ChunkyPressable({
   const [pressed, setPressed] = useState(false);
   const drop = Math.max(0, offset - pressedOffset);
   const sink = useSharedValue(0);
+  const grow = growsToFill(className);
 
   const give = useAnimatedStyle(() => ({ transform: [{ translateY: sink.value }] }));
 
@@ -143,6 +181,7 @@ export function ChunkyPressable({
         setPressed(false);
         sink.value = animate(MOTION.release, 0);
       }}
+      style={grow ? { flex: 1 } : undefined}
       {...props}
     >
       <Animated.View

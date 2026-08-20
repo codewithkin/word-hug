@@ -15,20 +15,24 @@ import { Wordmark } from '@/components/wordmark';
  *
  * The first screen of the product: the rule, and what it costs.
  *
- * ── The line that had to change (session 7c) ──────────────────────────────
+ * ── The line that left and came back (sessions 7c and 8) ──────────────────
  * This said "No timer, no score, no way to lose" — eight words that were the
  * entire product strategy, and the second sentence a new player ever read.
  *
- * Sessions 7 and 7b made all three of them false. Hearts are a timer and a way
- * to be stopped; a wrong guess is now red and shakes. The owner chose both,
- * knowingly, and both are one constant away from being undone
- * (`HEARTS_ENABLED`, `WRONG_GUESS_FEEDBACK`).
+ * Session 7 added hearts, which made it false: a meter that empties is a timer
+ * and a way to be stopped. The copy was pulled rather than left to lie, because
+ * a promise the app breaks four screens later is worse than no promise, and
+ * because it is the kind of thing a store reviewer reads.
  *
- * **A promise the app breaks four screens later is worse than no promise.** It
- * is also the kind of thing a store reviewer reads. So the copy now says what
- * is actually true — free daily puzzle, fifty free levels — and makes no claim
- * about what cannot happen. If hearts are ever switched off, the old line is
- * right here in this comment and worth putting back.
+ * Session 8 removed hearts, so **the line is back** — and it is true again.
+ * Nothing in this app can now stop you playing: no meter, no cooldown, no
+ * attempt cap, no fail screen.
+ *
+ * One caveat kept it honest before it was restored: a wrong guess does go red
+ * and shake (`WRONG_GUESS_FEEDBACK`). That is feedback and not a loss — the
+ * board is ready again in the same frame, and nothing is taken. "No way to
+ * lose" survives it. If a fail state is ever added back, this line comes out
+ * again, first.
  *
  * The screen is the wordmark, that sentence, and one button. There is no
  * account, no "choose your difficulty", no carousel of features — a tired
@@ -56,7 +60,7 @@ export default function Welcome() {
           <StepCopy
             delay={420}
             title={'Three words.\nOne word that hugs\nall three.'}
-            body="A new one every day, free. Plus fifty levels to work through whenever you like."
+            body="A new one every day, free, plus fifty levels to work through. No timer, no score, no way to lose."
           />
         </View>
 

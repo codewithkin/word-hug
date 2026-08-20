@@ -5,22 +5,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { CoinPill } from '@/components/coin-pill';
-import { HeartsMeter } from '@/components/hearts-meter';
 import { LevelNode, type LevelNodeState } from '@/components/level-node';
 import { Appear } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { BLOCK_SIZE, LEVEL_COUNT, levelBlocks } from '@/lib/levels';
-import { HEART_REFILL_COST, HEARTS_ENABLED, MAX_HEARTS } from '@/lib/lives';
 import { puzzleChip, puzzleForDate } from '@/lib/puzzles';
 import {
   claimFreeRunPrompt,
   effectiveToday,
   getCoins,
-  getHearts,
   getHighestLevel,
   getStreak,
   isSolved,
-  refillHearts,
 } from '@/lib/storage';
 
 /**
@@ -68,8 +64,6 @@ export default function Home() {
   const [highest, setHighest] = useState(getHighestLevel);
   const [coins, setCoins] = useState(getCoins);
   const [streak, setStreak] = useState(() => getStreak().current);
-  const [hearts, setHearts] = useState(() => getHearts().hearts);
-  const [nextHeartInMs, setNextHeartInMs] = useState(() => getHearts().nextInMs);
 
   const [date] = useState(() => effectiveToday());
   const daily = useMemo(() => puzzleForDate(date), [date]);
@@ -82,9 +76,6 @@ export default function Home() {
     setHighest(getHighestLevel());
     setCoins(getCoins());
     setStreak(getStreak().current);
-    const h = getHearts();
-    setHearts(h.hearts);
-    setNextHeartInMs(h.nextInMs);
     if (daily) setDailyDone(isSolved(daily.id));
   }, [daily]);
 
@@ -119,17 +110,6 @@ export default function Home() {
     return 'locked';
   }
 
-  function onRefillHearts() {
-    if (hearts >= MAX_HEARTS) return;
-    if (refillHearts()) {
-      refresh();
-      return;
-    }
-    // Not enough coins. Overlay C is the screen for an empty wallet and it is
-    // about what is still free rather than about buying.
-    router.push('/zero-coin');
-  }
-
   return (
     <View className="flex-1 bg-wh-ground">
       <PuzzleGround />
@@ -154,10 +134,6 @@ export default function Home() {
           </ChunkyPressable>
 
           <View className="flex-1 flex-row items-center justify-end gap-[7px]">
-            {HEARTS_ENABLED ? (
-              <HeartsMeter hearts={hearts} nextInMs={nextHeartInMs} onPress={onRefillHearts} />
-            ) : null}
-
             <CoinPill coins={coins} />
           </View>
         </Appear>
@@ -252,7 +228,6 @@ export default function Home() {
                 </Text>
               </View>
 
-              {/* Never gated by hearts. PRD rule 2 — see lib/lives.ts. */}
               {!dailyDone ? (
                 <Text className="font-wh-bold text-wh-h3 text-wh-primary">→</Text>
               ) : null}

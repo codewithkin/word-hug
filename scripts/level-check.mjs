@@ -29,6 +29,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { onRampFailures, scoreOf, HAS_CORPUS } from './difficulty.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FREE_BANK = join(ROOT, 'apps/native/content/levels.ts');
@@ -201,6 +202,9 @@ if (unsolvable === 0 && anagrams === 0) console.log('  every level is typable, a
 
 // ── 3. Placement ───────────────────────────────────────────────────────────
 
+/** Must match `ON_RAMP` in build-levels.mjs — the strictly-ordered head. */
+const ON_RAMP = 10;
+
 section('difficulty curve');
 
 const spread = levels.reduce((acc, l) => {
@@ -235,13 +239,54 @@ for (let i = 1; i < levels.length; i++) {
   }
 }
 
-// The first five levels are the ones that decide whether anyone plays a sixth.
-const opening = levels.slice(0, 5);
-const tooHard = opening.filter((l) => l.difficulty > 2);
-if (tooHard.length > 0) {
-  warn(`the opening five should all be difficulty 1–2; ${tooHard.map((l) => `${l.level} (${l.difficulty})`).join(', ')} ${tooHard.length === 1 ? 'is' : 'are'} harder`);
-} else {
-  console.log('  the opening five are all difficulty 1–2 ✓');
+/**
+ * ── The on-ramp ───────────────────────────────────────────────────────────
+ * The first ten levels decide whether anyone plays an eleventh.
+ *
+ * ── Why this check was rewritten ──────────────────────────────────────────
+ * It used to assert that the opening five were "difficulty 1–2", and it
+ * **passed** on the bank the owner could not play. Level 1 was `book`
+ * (`__CASE / NOTE__ / __MARK`), rated difficulty 1 by a model that scored word
+ * frequency — `book` is a very common word, so it scored as very easy, so the
+ * check was satisfied.
+ *
+ * A check that reads its verdict from the same model that produced the
+ * ordering cannot catch a wrong model. It can only confirm the model agrees
+ * with itself. This version asserts **content properties** instead — are the
+ * clues on one side, are the compounds household words, is the answer a thing
+ * you can picture — which are the facts the score is trying to summarise, and
+ * which would have failed loudly on `book`.
+ *
+ * These are errors, not warnings. An unplayable level 1 is not a note.
+ */
+const opening = levels.slice(0, ON_RAMP);
+
+let onRampClean = true;
+for (const [i, l] of opening.entries()) {
+  const failures = onRampFailures(l);
+  if (failures.length > 0) {
+    onRampClean = false;
+    error(`level ${i + 1} (${l.answer}) is not beginner-safe — ${failures.join('; ')}`);
+  }
+}
+
+// A staircase that steps backwards is not a staircase. The body of the run is
+// meant to zigzag; the on-ramp is not.
+for (let i = 1; i < opening.length; i++) {
+  const prev = scoreOf(opening[i - 1]).raw;
+  const here = scoreOf(opening[i]).raw;
+  if (here < prev) {
+    onRampClean = false;
+    error(
+      `level ${i + 1} (${opening[i].answer}) is easier than level ${i} (${opening[i - 1].answer}) — the opening must climb`
+    );
+  }
+}
+
+if (onRampClean) {
+  console.log(
+    `  the opening ${ON_RAMP} climb and are all beginner-safe ✓  (${opening.map((l) => l.answer).join(' → ')})`
+  );
 }
 
 section('give-aways');

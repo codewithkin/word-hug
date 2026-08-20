@@ -29,6 +29,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { bandOf, onRampFailures, scoreOf } from './difficulty.mjs';
 import { LEVEL_SOURCE } from './levels.source.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -111,78 +112,12 @@ function parse(source) {
 }
 
 // ── Difficulty ─────────────────────────────────────────────────────────────
-
-/**
- * The commonest English nouns that show up in compounds. A puzzle built
- * entirely from these is easy; one built from words outside the list is not.
- * Crude, and honest about being crude.
- *
- * ── Recalibrated for the 300-level bank ───────────────────────────────────
- * The first version was written against 100 levels and had roughly 200 words
- * in it. Against 300 it rated 32 of the 50 kitchen levels as difficulty 5 —
- * not because they are hard, but because `tea`, `spoon` and `cheese` were not
- * on the list and every absence costs +1.8.
- *
- * That is the honest weakness of a wordlist proxy: it measures "is this word
- * in my list" and reports it as "is this word common". The real fix is corpus
- * frequency from `scripts/puzzle-check.mjs`, which is the whole reason that
- * script exists. Until it has been run, this list is the calibration, and it
- * has to actually contain the everyday vocabulary the bank uses.
- */
-const COMMON = new Set(
-  `the be to of and in that have it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us man thing woman life child world school state family student group country problem hand part place case week company system program question number night point home water room mother area money story fact month lot right study book eye job word business issue side kind head house service friend father power hour game line end member law car city community name president team minute idea kid body information back parent face others level office door health person art war history party result change morning reason research girl guy moment air teacher force education foot boy age policy process music market sense nation plan college interest death experience effect use class control care field development role effort rate heart drug show leader light voice wife police mind price report decision son view relationship town road arm difference value building action model season society tax director position player record paper space ground form event official matter center couple site project activity star table need court garden fire south sound water fish bird tree stone snow rain sun moon milk bread cake egg corn nut pea cow pig dog cat sheep box card key ball bell book brush tooth hair paint news letter pot pan net yard walk way bed bath room door camp farm wind screen shot gun rail mill mark trade
-    tea salt honey sugar cheese meat bean spoon fork knife dish bowl fruit pie cook bake
-    plate roll apple grape straw bar sauce pepper ginger cob pod seed dough jelly ice lime
-    lunch break sweet wheat pop cloth wash soap butter nut pea berry corn bread egg
-    storm cloud frost thunder sky shore tide wave river lake brook spring summer winter
-    harvest sand mud rock hill grass leaf root branch pine weed flower garden path trail
-    bridge gate cave north day week earth track port coast bank stream tree log smoke steam
-    horse dog cat pig cow sheep fly bug worm bee fox frog duck crab mouse rat skin bone
-    blood heart brain finger thumb nail knee neck ear nose face arm leg tail horn nest
-    hound feather wolf goose crow lady child mother father king body mind lip
-    stick saw screw hammer bolt pin chain wheel gear motor cart brick glass iron steel
-    metal rubber craft shop store tool lock beam post sign frame wire pipe tank lift
-    switch plug band press stamp battle ship site
-    dark dream sleep pillow lamp shade window floor wall stair hall clock hour mid after
-    noon morning shadow peace rest song story home town ring glow torch read page print
-    write note pen ink step stool guest short soft set under up court chair`
-    .split(/\s+/)
-);
-
-/**
- * Difficulty 1–5.
- *
- * Three signals, all objective:
- *  · how common the answer is
- *  · how common the clue words are — an obscure clue is an unfair puzzle
- *  · answer length, as a weak proxy for search space
- *
- * Deliberately NOT a signal: whether the compounds "feel" obvious. That is the
- * judgement the PRD says not to trust.
- */
-function difficultyFor({ answer, words }) {
-  let score = 0;
-
-  if (!COMMON.has(answer)) score += 1.8;
-
-  const obscureClues = words.filter((w) => !COMMON.has(w.text)).length;
-  score += obscureClues * 0.9;
-
-  if (answer.length >= 6) score += 0.8;
-  else if (answer.length === 5) score += 0.3;
-  else if (answer.length <= 3) score += 0.5; // short answers have more neighbours
-
-  // A distinct-letter count above the six-key row means the player is working
-  // with fewer decoys, which makes the row itself a hint.
-  const distinct = new Set(answer).size;
-  if (distinct <= 3) score += 0.3;
-
-  // All three clues on the same side is a flatter puzzle, not a harder one.
-  const sides = new Set(words.map((w) => w.position));
-  if (sides.size === 1) score -= 0.4;
-
-  return Math.min(5, Math.max(1, Math.round(1 + score)));
-}
+//
+// Moved wholesale to `scripts/difficulty.mjs` in session 8. What used to live
+// here was a word-frequency proxy that rated `time`, `line`, `back` and `book`
+// as the easiest puzzles in the bank and put `book` at level 1, which the owner
+// could not solve. See that file for what replaced it and why frequency was the
+// wrong signal in the first place.
 
 // ── The ramp ───────────────────────────────────────────────────────────────
 
@@ -202,17 +137,35 @@ function difficultyFor({ answer, words }) {
  * of 2.80 → 3.20 — statistically a ramp, and in the hand a flat line.
  * `scripts/level-check.mjs` is what caught it.
  */
+/**
+ * How many levels at the head of a bank are strictly ordered, easiest first.
+ *
+ * ── Why the opening is exempt from the zigzag ─────────────────────────────
+ * The sawtooth is right for the body of the run and wrong for the start of it.
+ * `ZIGZAG[0] = 1` means slot 1 gets the *second*-easiest puzzle and the easiest
+ * lands at level 2 — which, combined with a difficulty function that ranked
+ * `book` first, is literally why the owner could not solve level 1.
+ *
+ * A new player has no idea what a Missing-Link puzzle is yet. They have not
+ * earned a breather, because they have not done any work; a dip in level 3
+ * reads as variety only once you have a baseline to dip from. So the first ten
+ * are a strict staircase and the zigzag starts at level 11.
+ */
+const ON_RAMP = 10;
+
 function ramp(rows) {
-  const sorted = [...rows].sort(
-    (a, b) => a.difficulty - b.difficulty || a.answer.localeCompare(b.answer)
-  );
+  // `raw` rather than the clamped score: two puzzles that both bottom out at 0
+  // still have real distance between them, and at the head of the bank that
+  // distance is the difference between level 1 and level 6.
+  const sorted = [...rows].sort((a, b) => a.raw - b.raw || a.answer.localeCompare(b.answer));
 
   const BLOCK = 10;
   /** Positions within a block, easiest-first index → slot. A local zigzag. */
   const ZIGZAG = [1, 0, 3, 6, 2, 5, 9, 4, 7, 8];
 
-  const out = [];
-  for (let start = 0; start < sorted.length; start += BLOCK) {
+  const out = sorted.slice(0, ON_RAMP);
+
+  for (let start = ON_RAMP; start < sorted.length; start += BLOCK) {
     const chunk = sorted.slice(start, start + BLOCK);
     const placed = new Array(chunk.length);
     chunk.forEach((row, i) => {
@@ -222,7 +175,57 @@ function ramp(rows) {
     out.push(...placed.filter(Boolean));
   }
 
+  // The declusterer may swap across the on-ramp boundary, so the gate below
+  // runs on the finished order rather than on `sorted`.
   return declusterGiveaways(out);
+}
+
+/**
+ * Refuses to emit a bank whose opening levels are not actually easy.
+ *
+ * ── Why this throws instead of warning ────────────────────────────────────
+ * Every other content problem in this pipeline degrades a level. This one
+ * decides whether a first-time player ever reaches level 2, and it is the
+ * failure that actually happened: the bank shipped, the check scripts were
+ * green, and the opening puzzle was unsolvable. A warning would have scrolled
+ * past exactly the same way.
+ *
+ * The gate is `onRampFailures` — same-side clues, three household compounds, a
+ * picturable answer, no grammatical clue words, nothing opaque. It is a
+ * content gate, not a score threshold, because a puzzle can total well and
+ * still contain the one thing that stops a beginner dead.
+ *
+ * If this throws, the fix is in `levels.source.mjs`, not here: retune a clue so
+ * all three sit on the same side of the answer, and prefer a compound someone
+ * has actually seen. Session 8 did exactly that to eight rows.
+ */
+function assertOnRamp(levels, set) {
+  const problems = [];
+
+  for (let i = 0; i < Math.min(ON_RAMP, levels.length); i++) {
+    const failures = onRampFailures(levels[i]);
+    if (failures.length > 0) {
+      problems.push(`  level ${i + 1} (${levels[i].answer}) — ${failures.join('; ')}`);
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(
+      `${set}: the first ${ON_RAMP} levels must be beginner-safe.\n` +
+        problems.join('\n') +
+        `\n\nFix the clues in scripts/levels.source.mjs — see assertOnRamp in build-levels.mjs.`
+    );
+  }
+
+  // A staircase that steps backwards is not a staircase. Only the on-ramp is
+  // held to this; the body of the run is meant to zigzag.
+  for (let i = 1; i < Math.min(ON_RAMP, levels.length); i++) {
+    if (levels[i].raw < levels[i - 1].raw) {
+      throw new Error(
+        `${set}: level ${i + 1} (${levels[i].answer}) is easier than level ${i} (${levels[i - 1].answer}).`
+      );
+    }
+  }
 }
 
 /**
@@ -309,7 +312,13 @@ function order(length, from, window) {
 
 // ── Parse and validate ─────────────────────────────────────────────────────
 
-const rows = parse(LEVEL_SOURCE).map((r) => ({ ...r, difficulty: difficultyFor(r) }));
+const rows = parse(LEVEL_SOURCE).map((r) => {
+  const { score, raw, why } = scoreOf(r);
+  // `difficulty` stays a 1–5 integer because that is what the level node and
+  // the analyser render. `raw` and `why` are build-time only — `raw` orders the
+  // bank, `why` is what `--explain` prints — and neither is emitted.
+  return { ...r, difficulty: bandOf(score), score, raw, why };
+});
 
 /**
  * Across ALL sets, not per-set.
@@ -367,6 +376,10 @@ const BANNER = (what, count, extra = '') => `/**
 
 const free = ramp(rows.filter((r) => r.set === 'free'));
 
+// The free run is the only bank a player can reach without paying, so it is the
+// only one whose opening is load-bearing. This throws rather than warns.
+assertOnRamp(free, 'free run');
+
 const freeOut = `import type { Level } from '@/lib/levels';
 
 ${BANNER('the free run', free.length)}
@@ -381,6 +394,30 @@ const packBanks = PACK_ORDER.map((id) => ({
   id,
   levels: ramp(rows.filter((r) => r.set === id)),
 }));
+
+/**
+ * Packs get the same ordering and a much softer gate.
+ *
+ * A pack is bought by someone who has already finished fifty free levels, so
+ * its level 1 does not have to teach the game — it only has to not be the
+ * hardest puzzle in the pack, which the strict on-ramp sort already guarantees.
+ *
+ * ── Why this is a count and not a list ────────────────────────────────────
+ * The first version printed every failing opening level across all five packs
+ * and produced 24 lines of warnings on a build that was fine. Output nobody
+ * reads is worse than no output, because it hides the free-run gate that
+ * genuinely matters three lines below it.
+ *
+ * It is also mostly measuring the wrong thing. `onRampFailures` demands that
+ * all three compounds be on the household list, and that list was authored
+ * against free-run vocabulary — `birdbath` is there and `sandcastle` is not,
+ * which says more about what I wrote down than about Outdoors level 1. So the
+ * count rides along on the summary line, where it reads as "this pack opens a
+ * bit steep" rather than as an error.
+ */
+const packRoughness = new Map(
+  packBanks.map((p) => [p.id, p.levels.slice(0, 5).filter((l) => onRampFailures(l).length > 0).length])
+);
 
 const packOut = `import type { Level } from '@/lib/levels';
 
@@ -422,11 +459,18 @@ writeFileSync(PACK_OUT, packOut);
 const spread = (list) =>
   list.reduce((acc, l) => ((acc[l.difficulty] = (acc[l.difficulty] ?? 0) + 1), acc), {});
 
-console.log(`✓ free run: ${free.length} levels  ${JSON.stringify(spread(free))}`);
+const band = (l) => `${Math.round(l.score)}`;
+
+console.log(
+  `✓ free run: ${free.length} levels  ${JSON.stringify(spread(free))}` +
+    `  ·  level 1 "${free[0].answer}" (${band(free[0])}) → level ${free.length} "${free.at(-1).answer}" (${band(free.at(-1))})`
+);
 for (const p of packBanks) {
   const loose = p.levels.filter((l) => l.looseTheme).length;
+  const rough = packRoughness.get(p.id) ?? 0;
   console.log(
     `  ${p.id.padEnd(10)} ${String(p.levels.length).padStart(3)} levels  ${JSON.stringify(spread(p.levels))}` +
-      (loose ? `  (${loose} loose-theme)` : '')
+      (loose ? `  (${loose} loose-theme)` : '') +
+      (rough ? `  (${rough}/5 steep opening)` : '')
   );
 }

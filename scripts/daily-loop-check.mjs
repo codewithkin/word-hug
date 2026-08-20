@@ -167,21 +167,41 @@ group('rule 1 — nothing that punishes', () => {
     index.includes('if (!__DEV__) return null'),
     'the temporary route list must not reach a store build');
 
+  /**
+   * ── There is no failure state ───────────────────────────────────────────
+   * These four checks used to police the hearts system: that a near miss did
+   * not charge one, that the daily was exempt, that a replay was free, and
+   * that every charge went through a single gate.
+   *
+   * Session 8 removed hearts, so the guarantees they protected are now
+   * structural rather than conditional — you cannot mis-apply an exemption to
+   * a mechanic that does not exist. What replaced them is the stronger claim:
+   * **nothing anywhere can refuse a guess.**
+   *
+   * They are kept as checks rather than deleted because the reason hearts went
+   * is commercial, not just philosophical — an energy meter ends sessions, and
+   * the plan is ad-supported, so hearts spend the revenue they were meant to
+   * protect. That argument is exactly the kind that gets quietly reversed six
+   * months later by someone adding "just a small" attempt cap. This is the
+   * tripwire.
+   */
   const level = code('hooks/use-level.ts');
-  const lives = code('lib/lives.ts');
+  const levelScreen = code('app/level/[n].tsx');
+  const packScreen = code('app/pack-level/[id]/[n].tsx');
+  const storage = code('lib/storage/index.ts');
 
-  ok('the level hook routes every heart charge through shouldSpendHeart',
-    level.includes('shouldSpendHeart(') && !/spendHeart\(\)/.test(level.replace(/if \(spendHeart\(\)\)/g, '')),
-    'a second, ungated call site is how an exemption gets lost');
-  ok('a near miss never costs a heart',
-    lives.includes("options.result === 'wrong'"),
-    'charging for the one encouraging moment in the loop would invert its meaning');
-  ok('the daily puzzle is never gated by hearts',
-    code('lib/lives.ts').includes("options.source === 'daily'"),
-    'PRD rule 2: never gate daily play');
-  ok('a replay never costs a heart',
-    code('lib/lives.ts').includes('options.alreadySolved'),
-    'a level you have beaten is not a test');
+  ok('the level hook has no way to refuse a guess',
+    !/outOfHearts|spendHeart|getHearts/.test(level),
+    'a meter that empties is a timer, and the app promises there is none');
+  ok('no screen renders a hearts meter',
+    !/HeartsMeter/.test(levelScreen + packScreen + code('app/home.tsx')),
+    'the energy system was removed, not hidden behind a flag');
+  ok('storage has no heart balance to spend',
+    !/hearts/i.test(storage),
+    'leaving the accessors behind is how a removed feature comes back');
+  ok('a wrong guess is counted but never charged',
+    level.includes('setWrongGuesses') && !/spend/i.test(level),
+    'the difficulty model needs the signal; the player must not pay for it');
 });
 
 console.log(

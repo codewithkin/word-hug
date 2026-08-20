@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { isFirm, keyHaptic, solveHaptic, wrongGuessHaptic } from '@/lib/feedback';
 import {
@@ -10,20 +10,17 @@ import {
   packLevelKey,
   type Level,
 } from '@/lib/levels';
-import { HEARTS_ENABLED, shouldSpendHeart } from '@/lib/lives';
 import { nudgeNote, type NudgeTier } from '@/lib/nudges';
 import { clueWords, compoundsFor, keysFor } from '@/lib/puzzles';
 import {
   advanceStreakToday,
   getCoins,
-  getHearts,
   getLevelResult,
   getLevelResults,
   getNudgeTier,
   isLevelSolved,
   isLevelUnlocked,
   recordLevelSolve,
-  spendHeart,
 } from '@/lib/storage';
 
 /** Solved-ness by raw key, which is how pack levels are stored. */
@@ -35,18 +32,25 @@ function isLevelSolvedKey(key: string): boolean {
  * ── One level, playing ────────────────────────────────────────────────────
  * The level equivalent of `use-daily-puzzle`. Deliberately a separate hook
  * rather than a shared one with a `mode` flag: the two loops differ in four
- * places that all matter — hearts, unlocking, what a solve advances, and what
- * happens after — and a flag would put four `if (mode === 'daily')` branches
- * in the middle of the busiest state machine in the app.
+ * places that all matter — unlocking, what a solve advances, what happens
+ * after, and how progress is keyed — and a flag would put four
+ * `if (mode === 'daily')` branches in the middle of the busiest state machine
+ * in the app.
  *
  * They share everything that should be shared: `keysFor`, `clueWords`,
  * `compoundsFor`, the nudge ladder, the feedback module and the grading rules.
  *
- * ── Hearts ────────────────────────────────────────────────────────────────
- * A wrong guess costs one. A near miss does not, a replay does not, and the
- * daily puzzle does not — see `lib/lives.ts` for why each exemption exists.
- * At zero the board stops accepting guesses and `outOfHearts` goes true; the
- * screen offers a refill rather than sending the player away.
+ * ── There is no failure state ─────────────────────────────────────────────
+ * Session 8 removed hearts. **Nothing in this hook can refuse a guess** — no
+ * meter, no cooldown, no attempt cap. A wrong guess costs a shake, a buzz and
+ * a line of text, and then the board is immediately ready again.
+ *
+ * That is rule 1 ("never punish") restored, but the reason it came back is
+ * commercial rather than principled: an energy meter's whole job is to end the
+ * session, and every minute it ends is a minute of ad inventory that does not
+ * exist. Hearts and ads want opposite things from the same player. `wrongGuesses`
+ * still counts, because the difficulty model needs the signal, but it is a
+ * measurement and never a cost.
  */
 
 export type LevelPhase = 'playing' | 'guessed' | 'solved' | 'locked';
@@ -67,9 +71,6 @@ export interface LevelGame {
   clues: string[];
   compounds: { clue: string; before: boolean }[];
   coins: number;
-  hearts: number;
-  nextHeartInMs: number;
-  outOfHearts: boolean;
   canSubmit: boolean;
   shakeTrigger: number;
   press: (letter: string) => void;
@@ -108,20 +109,18 @@ export function useLevel(n: number, packId?: string): LevelGame {
   const [shakeTrigger, setShakeTrigger] = useState(0);
 
   const [coins, setCoins] = useState(getCoins);
-  const [hearts, setHearts] = useState(() => getHearts().hearts);
-  const [nextHeartInMs, setNextHeartInMs] = useState(() => getHearts().nextInMs);
   const [nudgeTier, setNudgeTierState] = useState<NudgeTier>(() =>
     level ? getNudgeTier(level.id) : 0
   );
 
-  /** Hearts lost on this attempt. Stored on solve, for the analysis script. */
-  const [heartsLost, setHeartsLost] = useState(0);
+  /**
+   * Wrong guesses on this attempt. Stored on solve and shown to nobody — it is
+   * the difficulty model's only field evidence that a level is mis-rated.
+   */
+  const [wrongGuesses, setWrongGuesses] = useState(0);
 
   const refresh = useCallback(() => {
     setCoins(getCoins());
-    const h = getHearts();
-    setHearts(h.hearts);
-    setNextHeartInMs(h.nextInMs);
     if (!level) return;
 
     const tier = getNudgeTier(level.id);
@@ -136,29 +135,12 @@ export function useLevel(n: number, packId?: string): LevelGame {
 
   useFocusEffect(refresh);
 
-  /**
-   * Ticks the countdown while the player is watching it.
-   *
-   * One second is the coarsest interval that still looks like a clock. It runs
-   * only when hearts are actually missing, so a full meter costs nothing.
-   */
-  useEffect(() => {
-    if (!HEARTS_ENABLED || hearts >= 5 || nextHeartInMs <= 0) return;
-    const id = setInterval(() => {
-      const h = getHearts();
-      setHearts(h.hearts);
-      setNextHeartInMs(h.nextInMs);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [hearts, nextHeartInMs]);
-
   const keys = useMemo(() => (level ? keysFor(level) : []), [level]);
   const clues = useMemo(() => (level ? clueWords(level) : []), [level]);
   const compounds = useMemo(() => (level ? compoundsFor(level) : []), [level]);
   const used = useMemo(() => new Set([...typed]), [typed]);
 
   const length = level?.answer.length ?? 0;
-  const outOfHearts = HEARTS_ENABLED && !replay && hearts <= 0;
 
   const press = useCallback(
     (letter: string) => {
@@ -183,16 +165,13 @@ export function useLevel(n: number, packId?: string): LevelGame {
   const submit = useCallback(() => {
     if (!level || phase === 'solved' || phase === 'locked') return;
     if (typed.length !== length) return;
-    // An empty meter stops the guess before it is graded, so a player cannot
-    // burn their last attempt on a board that was about to refuse it anyway.
-    if (outOfHearts) return;
 
     const graded = gradeLevelGuess(level, typed);
 
     if (graded === 'correct') {
       recordLevelSolve(key, {
         solvedAt: Date.now(),
-        heartsLost,
+        wrongGuesses,
         nudgeTier,
       });
       // A level solve keeps the streak alive, exactly like the daily does.
@@ -205,19 +184,16 @@ export function useLevel(n: number, packId?: string): LevelGame {
 
     setResult(graded);
     setPhase('guessed');
-
-    if (shouldSpendHeart({ source: 'level', alreadySolved: replay, result: graded })) {
-      if (spendHeart()) setHeartsLost((c) => c + 1);
-      const h = getHearts();
-      setHearts(h.hearts);
-      setNextHeartInMs(h.nextInMs);
-    }
+    // Counted, never charged. A near miss is not a wrong answer and does not
+    // count — it is the player being right about the shape and wrong about one
+    // letter, which the difficulty model reads very differently.
+    if (graded === 'wrong') setWrongGuesses((c) => c + 1);
 
     if (graded === 'wrong' && isFirm) {
       setShakeTrigger((c) => c + 1);
       wrongGuessHaptic();
     }
-  }, [heartsLost, key, length, level, nudgeTier, outOfHearts, phase, replay, typed]);
+  }, [key, length, level, nudgeTier, phase, typed, wrongGuesses]);
 
   const note =
     phase === 'guessed' && result !== null
@@ -242,9 +218,6 @@ export function useLevel(n: number, packId?: string): LevelGame {
     clues,
     compounds,
     coins,
-    hearts,
-    nextHeartInMs,
-    outOfHearts,
     canSubmit: typed.length === length && length > 0,
     shakeTrigger,
     press,

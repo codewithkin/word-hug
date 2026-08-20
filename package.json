@@ -20,7 +20,8 @@
     "check:imports": "node scripts/imports-check.mjs",
     "check": "node scripts/imports-check.mjs && node scripts/daily-loop-check.mjs && node scripts/build-levels.mjs --check && node scripts/level-check.mjs && node scripts/nav-check.mjs",
     "tokens:css": "node packages/tokens/scripts/emit-theme-css.mjs",
-    "tokens:test": "node packages/tokens/test/design-parity.mjs && node packages/tokens/test/design-parity.mjs --tamper && node packages/tokens/scripts/emit-theme-css.mjs --check && node packages/tokens/scripts/emit-theme-css.mjs --tamper"
+    "tokens:test": "node packages/tokens/test/design-parity.mjs && node packages/tokens/test/design-parity.mjs --tamper && node packages/tokens/scripts/emit-theme-css.mjs --check && node packages/tokens/scripts/emit-theme-css.mjs --tamper",
+    "levels:corpus": "node scripts/fetch-corpus.mjs"
   },
   "dependencies": {
     "@word-hug/env": "workspace:*",

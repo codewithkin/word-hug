@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChunkyPressable } from '@/components/chunky';
 import { CoinPill } from '@/components/coin-pill';
 import { GameActions, GameBoard } from '@/components/game-board';
-import { HeartsMeter } from '@/components/hearts-meter';
 import { Appear } from '@/components/motion';
 import { GuessNote } from '@/components/notice';
 import { PuzzleGround } from '@/components/puzzle-ground';
@@ -13,8 +12,6 @@ import { SolveCelebration } from '@/components/solve-celebration';
 import { useToast } from '@/components/toast';
 import { useLevel } from '@/hooks/use-level';
 import { LEVEL_COUNT } from '@/lib/levels';
-import { HEART_REFILL_COST, HEARTS_ENABLED } from '@/lib/lives';
-import { refillHearts } from '@/lib/storage';
 
 /**
  * ── /level/[n] ────────────────────────────────────────────────────────────
@@ -29,13 +26,14 @@ import { refillHearts } from '@/lib/storage';
  * became a caller of it.
  *
  * ── The header ────────────────────────────────────────────────────────────
- * Back button, coins, hearts. All three are new here:
+ * Back and coins:
  * · **Back** — the owner asked for one. The board previously relied on the
  *   hardware gesture, which is not an affordance.
  * · **Coins** — you cannot decide whether to buy a hint without knowing what
  *   you have, and the hint button is right there.
- * · **Hearts** — hidden on a replay, because a level you have beaten costs
- *   nothing to attempt again.
+ *
+ * A hearts meter sat between them until session 8, when the whole energy
+ * system was removed. Nothing on this screen can now stop you playing.
  */
 export default function LevelScreen() {
   const insets = useSafeAreaInsets();
@@ -43,7 +41,7 @@ export default function LevelScreen() {
   const n = Number(params.n ?? '1');
 
   const game = useLevel(Number.isFinite(n) ? n : 1);
-  const { toast, show, node: toastNode } = useToast();
+  const { toast, node: toastNode } = useToast();
 
   const {
     level,
@@ -56,9 +54,6 @@ export default function LevelScreen() {
     note,
     nudgeLine,
     coins,
-    hearts,
-    nextHeartInMs,
-    outOfHearts,
     clues,
     compounds,
     canSubmit,
@@ -66,7 +61,6 @@ export default function LevelScreen() {
     press,
     backspace,
     submit,
-    refresh,
   } = game;
 
   if (!level || locked) {
@@ -92,37 +86,6 @@ export default function LevelScreen() {
     );
   }
 
-  /**
-   * Refilling, and saying so when it cannot happen.
-   *
-   * The owner tapped a priced hint with no coins and got silence. Every path
-   * that can fail now says why, inline — see `components/toast.tsx`.
-   */
-  function onRefill() {
-    if (refillHearts()) {
-      refresh();
-      show({ message: 'Hearts refilled', tone: 'done' });
-      return;
-    }
-    show({
-      message: `Need ${HEART_REFILL_COST} coins to refill`,
-      actionLabel: 'Get some',
-      onAction: () => router.push({ pathname: '/shop', params: { coins: '1' } }),
-    });
-  }
-
-  function onSubmit() {
-    if (outOfHearts) {
-      show({
-        message: 'Out of hearts — they come back on their own',
-        actionLabel: 'Refill',
-        onAction: onRefill,
-      });
-      return;
-    }
-    submit();
-  }
-
   const hasNext = n < LEVEL_COUNT;
 
   return (
@@ -130,7 +93,7 @@ export default function LevelScreen() {
       <PuzzleGround />
 
       <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        {/* ── Header: back, hearts, coins ─────────────────────────────── */}
+        {/* ── Header: back, coins ─────────────────────────────────────── */}
         <Appear
           rise={-6}
           className="h-[60px] flex-row items-center justify-between gap-2 px-[18px] pt-[6px]"
@@ -152,9 +115,6 @@ export default function LevelScreen() {
           </ChunkyPressable>
 
           <View className="flex-1 flex-row items-center justify-end gap-[7px]">
-            {HEARTS_ENABLED && !replay ? (
-              <HeartsMeter hearts={hearts} nextInMs={nextHeartInMs} onPress={onRefill} />
-            ) : null}
             <CoinPill coins={coins} />
           </View>
         </Appear>
@@ -179,7 +139,7 @@ export default function LevelScreen() {
           shakeTrigger={shakeTrigger}
           onKey={press}
           onBackspace={backspace}
-          onSubmit={onSubmit}
+          onSubmit={submit}
           onHint={() =>
             router.push({ pathname: '/nudge-picker', params: { puzzleId: level.id } })
           }
@@ -204,7 +164,7 @@ export default function LevelScreen() {
           onHint={() =>
             router.push({ pathname: '/nudge-picker', params: { puzzleId: level.id } })
           }
-          onSubmit={onSubmit}
+          onSubmit={submit}
           onBackspace={backspace}
         />
       </View>

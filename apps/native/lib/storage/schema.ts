@@ -38,15 +38,18 @@ export const solvesSchema = z.record(z.string(), solveSchema).catch({});
 /**
  * What is remembered about a finished level.
  *
- * `heartsLost` is kept for the level-analysis script rather than for the
- * player: nothing in the UI shows it. It is the only signal this app will ever
- * have about whether a level is too hard, because there is no analytics
- * pipeline and there never will be (PRD §10). If a level's median
- * `heartsLost` is 4 on the owner's own device, that is the bug report.
+ * `wrongGuesses` replaced `heartsLost` when the heart system was removed in
+ * session 8. It is the same signal — how much trouble a level gave — and it is
+ * still not shown to the player. With no analytics pipeline and none planned
+ * (PRD §10), a level's median wrong-guess count on the owner's own device is
+ * the only evidence this project will ever have that a level is mis-rated.
+ *
+ * `.catch()` on the field rather than the object, so a record written before
+ * the rename still parses instead of taking the whole history down with it.
  */
 export const levelResultSchema = z.object({
   solvedAt: z.number(),
-  heartsLost: z.number(),
+  wrongGuesses: z.number().catch(0),
   nudgeTier: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]),
 });
 

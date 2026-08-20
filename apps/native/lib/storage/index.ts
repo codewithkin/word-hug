@@ -2,11 +2,8 @@ import { MMKV } from 'react-native-mmkv';
 
 import {
   DEFAULT_REMINDER_TIME,
-  HEART_REFILL_COST,
-  HEART_REGEN_MINUTES,
   INSTALL_COIN_GRANT,
   INSTANCE,
-  MAX_HEARTS,
   FREE_RUN_SHOWN_KEY,
   OWNED_PACKS_KEY,
   PREFS,
@@ -405,83 +402,6 @@ export function claimFreeRunPrompt(): boolean {
   if (prefs.getBoolean(FREE_RUN_SHOWN_KEY) === true) return false;
   prefs.set(FREE_RUN_SHOWN_KEY, true);
   return true;
-}
-
-// ── Hearts ─────────────────────────────────────────────────────────────────
-
-/**
- * Hearts, with regeneration resolved at read time.
- *
- * There is no timer and no background task. The clock is a single stored
- * timestamp and every read works out how many hearts have accrued since —
- * which means regen keeps running while the app is closed, survives a reboot,
- * and costs nothing when nobody is looking. A `setInterval` would do none of
- * those things and would drain a battery to achieve it.
- *
- * Returns the resolved state and persists it, so the arithmetic happens once
- * per read rather than compounding.
- */
-export function getHearts(): { hearts: number; nextInMs: number } {
-  const stored = progress.getNumber(PROGRESS.hearts) ?? MAX_HEARTS;
-
-  if (stored >= MAX_HEARTS) {
-    progress.set(PROGRESS.hearts, MAX_HEARTS);
-    progress.set(PROGRESS.heartsSince, Date.now());
-    return { hearts: MAX_HEARTS, nextInMs: 0 };
-  }
-
-  const period = HEART_REGEN_MINUTES * 60_000;
-  const since = progress.getNumber(PROGRESS.heartsSince) ?? Date.now();
-  const elapsed = Math.max(0, Date.now() - since);
-  const earned = Math.floor(elapsed / period);
-
-  if (earned <= 0) {
-    return { hearts: stored, nextInMs: period - (elapsed % period) };
-  }
-
-  const hearts = Math.min(MAX_HEARTS, stored + earned);
-  // Carry the remainder rather than restarting the clock, so a player who
-  // opens the app 19 minutes into a cycle does not lose those 19 minutes.
-  progress.set(PROGRESS.hearts, hearts);
-  progress.set(PROGRESS.heartsSince, hearts >= MAX_HEARTS ? Date.now() : since + earned * period);
-
-  return {
-    hearts,
-    nextInMs: hearts >= MAX_HEARTS ? 0 : period - ((elapsed - earned * period) % period),
-  };
-}
-
-/**
- * Spends one heart. Returns false when there are none left.
- *
- * False is not a failure the caller should swallow: it means the board must
- * stop accepting guesses and offer the refill. Losing the last heart also
- * starts the regen clock, which is why the timestamp is written here and not
- * only in `getHearts`.
- */
-export function spendHeart(): boolean {
-  const { hearts } = getHearts();
-  if (hearts <= 0) return false;
-
-  if (hearts === MAX_HEARTS) progress.set(PROGRESS.heartsSince, Date.now());
-  progress.set(PROGRESS.hearts, hearts - 1);
-  return true;
-}
-
-/** Buys a full refill. Returns false and spends nothing if coins are short. */
-export function refillHearts(): boolean {
-  if (getHearts().hearts >= MAX_HEARTS) return true;
-  if (!spendCoins(HEART_REFILL_COST)) return false;
-
-  progress.set(PROGRESS.hearts, MAX_HEARTS);
-  progress.set(PROGRESS.heartsSince, Date.now());
-  return true;
-}
-
-/** Grants hearts without charging — the reward for a future rewarded ad. */
-export function grantHearts(n: number): void {
-  const { hearts } = getHearts();
-  progress.set(PROGRESS.hearts, Math.min(MAX_HEARTS, hearts + n));
 }
 
 /**

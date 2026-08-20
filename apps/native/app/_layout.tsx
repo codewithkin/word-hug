@@ -11,7 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorView } from '@/components/error-view';
 import { AppThemeProvider } from '@/contexts/app-theme-context';
-import { initNotifications } from '@/lib/notifications';
+import { initNotifications, onNudgeTapped, refreshDailyNudges } from '@/lib/notifications';
 import { initStorage } from '@/lib/storage';
 import { FONT_MAP } from '@/theme/fonts';
 
@@ -95,6 +95,37 @@ export default function RootLayout() {
    */
   useEffect(() => {
     void initNotifications();
+  }, []);
+
+  /**
+   * Refill the reminder window, and send a tap to the puzzle it named.
+   *
+   * The refresh has to happen on every launch: reminders are scheduled as a
+   * rolling fortnight of dated notifications rather than one repeating
+   * trigger, so without this they would quietly stop for everyone two weeks
+   * after onboarding. It is a no-op when the player never asked for them.
+   *
+   * Separate from the channel effect above because that one must run before
+   * any permission is requested, whereas this one needs permission to already
+   * exist. Both are cheap and idempotent.
+   */
+  useEffect(() => {
+    void refreshDailyNudges();
+
+    let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
+
+    void onNudgeTapped(() => router.push('/daily')).then((off) => {
+      // The listener resolves asynchronously, so the screen can unmount before
+      // it is ready. Without this the subscription would leak on a fast remount.
+      if (cancelled) off?.();
+      else unsubscribe = off;
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   useEffect(() => {
