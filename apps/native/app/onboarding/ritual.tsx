@@ -127,7 +127,7 @@ export default function Ritual() {
           <StepCopy
             delay={300}
             title={'One puzzle a day,\nabout a minute'}
-            body="Miss a day and nothing is taken from you. The last seven stay open in the archive, so you can always catch up."
+            body="Miss a day and your streak just starts again — nothing else changes. The last seven stay open in the archive, so you can always catch up."
           />
 
           {/* ── The streak card ───────────────────────────────────────── */}

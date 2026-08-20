@@ -13,10 +13,22 @@ import { Wordmark } from '@/components/wordmark';
  * Built from `designs/extracted/04-welcome-light.html` and
  * `04-welcome-dark.html`, read in full, both themes.
  *
- * The first screen of the product, and it does something unusual for a puzzle
- * game: it explains the rule and then immediately promises what it will never
- * do. "No timer, no score, no way to lose" is the entire product strategy in
- * eight words, and it is on screen before anything is asked of anyone.
+ * The first screen of the product: the rule, and what it costs.
+ *
+ * ── The line that had to change (session 7c) ──────────────────────────────
+ * This said "No timer, no score, no way to lose" — eight words that were the
+ * entire product strategy, and the second sentence a new player ever read.
+ *
+ * Sessions 7 and 7b made all three of them false. Hearts are a timer and a way
+ * to be stopped; a wrong guess is now red and shakes. The owner chose both,
+ * knowingly, and both are one constant away from being undone
+ * (`HEARTS_ENABLED`, `WRONG_GUESS_FEEDBACK`).
+ *
+ * **A promise the app breaks four screens later is worse than no promise.** It
+ * is also the kind of thing a store reviewer reads. So the copy now says what
+ * is actually true — free daily puzzle, fifty free levels — and makes no claim
+ * about what cannot happen. If hearts are ever switched off, the old line is
+ * right here in this comment and worth putting back.
  *
  * The screen is the wordmark, that sentence, and one button. There is no
  * account, no "choose your difficulty", no carousel of features — a tired
@@ -44,7 +56,7 @@ export default function Welcome() {
           <StepCopy
             delay={420}
             title={'Three words.\nOne word that hugs\nall three.'}
-            body="A new one every day. No timer, no score, no way to lose."
+            body="A new one every day, free. Plus fifty levels to work through whenever you like."
           />
         </View>
 
