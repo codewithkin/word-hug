@@ -61,3 +61,6 @@ temp
 # Session-3 transfer scaffolding (see scripts/session-2-cleanup.sh)
 .trash-session-3/
 .cache/
+
+# Output of `pnpm validate:bank`. Regenerated, and it changes on every run.
+bank-report.json
