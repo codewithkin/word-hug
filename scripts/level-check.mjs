@@ -270,6 +270,56 @@ for (let i = 0; i < levels.length; i++) {
 
 if (giveaways === 0) console.log(`  no level gives away another within ${WINDOW} places`);
 
+// ── In-bank collisions ─────────────────────────────────────────────────────
+
+section('in-bank uniqueness');
+
+/**
+ * The slice of the uniqueness question that needs no network.
+ *
+ * The real check is `scripts/validate-bank.mjs`, which asks Datamuse whether
+ * ANY English word hugs all three clues. This asks a narrower question that
+ * can be answered from the bank alone: does any *other answer we ship* form a
+ * compound with all three clues of some puzzle, where every one of those
+ * compounds is itself asserted somewhere in our own content?
+ *
+ * Narrow, but it is the most embarrassing class of collision — both words are
+ * in the game, so a player who has met the other one has a genuine second
+ * answer the game will reject. And unlike the Datamuse pass it costs nothing
+ * and runs every time.
+ */
+const asserted = new Set();
+for (const l of [...levels, ...packLevels]) {
+  for (const w of l.words) {
+    asserted.add(w.position === 'before' ? `${w.text}+${l.answer}` : `${l.answer}+${w.text}`);
+  }
+}
+
+const everyAnswer = [...levels, ...packLevels].map((l) => l.answer);
+let collisions = 0;
+
+for (const l of [...levels, ...packLevels]) {
+  for (const other of everyAnswer) {
+    if (other === l.answer) continue;
+
+    const hugsAll = l.words.every((w) =>
+      asserted.has(w.position === 'before' ? `${w.text}+${other}` : `${other}+${w.text}`)
+    );
+
+    if (hugsAll) {
+      error(
+        `${l.answer} (${l.words.map((w) => w.text).join('/')}) is also hugged by "${other}" — both are in the game`
+      );
+      collisions++;
+    }
+  }
+}
+
+if (collisions === 0) {
+  console.log('  no puzzle is solved by another answer we ship');
+  console.log('  (the full search needs the network — run: pnpm validate:bank)');
+}
+
 // ── Verbose listing ────────────────────────────────────────────────────────
 
 if (VERBOSE) {
