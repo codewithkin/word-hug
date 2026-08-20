@@ -242,30 +242,69 @@ function declusterGiveaways(levels, window = 5) {
   const clashes = (a, b) =>
     a && b && (b.words.some((w) => w.text === a.answer) || a.words.some((w) => w.text === b.answer));
 
-  for (let i = 0; i < levels.length; i++) {
-    for (let j = i + 1; j <= Math.min(i + window, levels.length - 1); j++) {
-      if (!clashes(levels[i], levels[j])) continue;
+  /** Every level within `window` of index i, excluding i itself. */
+  const neighbours = (list, i) =>
+    list.slice(Math.max(0, i - window), Math.min(list.length, i + window + 1)).filter((_, o) => {
+      const abs = Math.max(0, i - window) + o;
+      return abs !== i;
+    });
 
-      // Find something further along, of the same difficulty so the ramp is
-      // untouched, that collides with nothing in either neighbourhood.
-      for (let k = j + window; k < levels.length; k++) {
-        if (levels[k].difficulty !== levels[j].difficulty) continue;
+  /** True when putting `row` at index i introduces no clash. */
+  const fits = (list, i, row) => neighbours(list, i).every((n) => !clashes(n, row));
 
-        const near = (index) =>
-          levels.slice(Math.max(0, index - window), index + window + 1).filter((_, o) => o !== window);
+  /**
+   * Two passes over the whole list, then give up.
+   *
+   * The first version tried to move only the LATER level of a clashing pair and
+   * only to a slot of identical difficulty, and left three pairs unresolved in a
+   * 50-level bank. Two changes fix it: try moving either member, and accept a
+   * swap partner within one difficulty band rather than exactly equal — a level
+   * moving from difficulty 3 to 4 inside a 50-level ramp is invisible, whereas
+   * two levels that give each other away are not.
+   *
+   * Bounded at two passes because a swap can create a new clash elsewhere;
+   * iterating to a fixed point is not guaranteed to terminate on a bank where
+   * some pair genuinely cannot be separated.
+   */
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < levels.length; i++) {
+      for (let j = i + 1; j <= Math.min(i + window, levels.length - 1); j++) {
+        if (!clashes(levels[i], levels[j])) continue;
 
-        const candidateOk = near(j).every((n) => !clashes(n, levels[k]));
-        const displacedOk = near(k).every((n) => !clashes(n, levels[j]));
+        let moved = false;
 
-        if (candidateOk && displacedOk) {
-          [levels[j], levels[k]] = [levels[k], levels[j]];
-          break;
+        // Try relocating either member of the pair, nearest candidate first.
+        for (const from of [j, i]) {
+          for (const k of order(levels.length, from, window)) {
+            if (Math.abs(levels[k].difficulty - levels[from].difficulty) > 1) continue;
+
+            const trial = levels.slice();
+            [trial[from], trial[k]] = [trial[k], trial[from]];
+
+            if (fits(trial, from, trial[from]) && fits(trial, k, trial[k])) {
+              levels[from] = trial[from];
+              levels[k] = trial[k];
+              moved = true;
+              break;
+            }
+          }
+          if (moved) break;
         }
       }
     }
   }
 
   return levels;
+}
+
+/** Candidate indices for a swap, nearest-outside-the-window first. */
+function order(length, from, window) {
+  const out = [];
+  for (let d = window + 1; d < length; d++) {
+    if (from + d < length) out.push(from + d);
+    if (from - d >= 0) out.push(from - d);
+  }
+  return out;
 }
 
 // ── Parse and validate ─────────────────────────────────────────────────────
