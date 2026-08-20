@@ -31,7 +31,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BANK = join(ROOT, 'apps/native/content/levels.ts');
+const FREE_BANK = join(ROOT, 'apps/native/content/levels.ts');
+const PACK_BANK = join(ROOT, 'apps/native/content/pack-levels.ts');
 
 const VERBOSE = process.argv.includes('--verbose');
 
@@ -54,9 +55,9 @@ function section(name) {
 
 // ── Read the bank ──────────────────────────────────────────────────────────
 
-const source = readFileSync(BANK, 'utf8');
-
-const levels = [...source.matchAll(/\{ id: '([^']+)', level: (\d+), answer: '([^']+)'[\s\S]*?difficulty: (\d)[\s\S]*?words: \[([^\]]+)\] \}/g)].map(
+function parseBank(file) {
+  const source = readFileSync(file, 'utf8');
+  return [...source.matchAll(/\{ id: '([^']+)', level: (\d+), answer: '([^']+)'[\s\S]*?difficulty: (\d)[\s\S]*?words: \[([^\]]+)\] \}/g)].map(
   (m) => ({
     id: m[1],
     level: Number(m[2]),
@@ -66,15 +67,40 @@ const levels = [...source.matchAll(/\{ id: '([^']+)', level: (\d+), answer: '([^
       text: w[1],
       position: w[2],
     })),
-  })
-);
+  }));
+}
+
+/**
+ * The free run is the bank whose curve and opening are checked in detail — it
+ * is the one every player sees. The packs are checked for structure,
+ * playability and their own ramp, and additionally for the thing that broke
+ * once: **no answer may appear in more than one bank.**
+ */
+const levels = parseBank(FREE_BANK);
+const packLevels = parseBank(PACK_BANK);
+
+section('banks');
+console.log(`  free run: ${levels.length}   packs: ${packLevels.length}`);
+
+const acrossBanks = new Map();
+for (const [name, bank] of [['free', levels], ['packs', packLevels]]) {
+  for (const l of bank) {
+    if (acrossBanks.has(l.answer)) {
+      error(
+        `"${l.answer}" is in both ${acrossBanks.get(l.answer)} and ${name} — a pack must never sell a puzzle the free run already gave away`
+      );
+    }
+    acrossBanks.set(l.answer, name);
+  }
+}
+if (errors === 0) console.log('  no answer appears in two banks');
 
 if (levels.length === 0) {
   console.error('Could not parse any levels from content/levels.ts. Did the emitter format change?');
   process.exit(1);
 }
 
-console.log(`Word Hug — ${levels.length} levels\n${'─'.repeat(46)}`);
+console.log(`Word Hug — level banks\n${'─'.repeat(46)}`);
 
 // ── 1. Well-formed ─────────────────────────────────────────────────────────
 
@@ -83,7 +109,7 @@ section('structure');
 const ids = new Set();
 const answers = new Set();
 
-for (const l of levels) {
+for (const l of [...levels, ...packLevels]) {
   if (ids.has(l.id)) error(`duplicate id ${l.id}`);
   ids.add(l.id);
 
@@ -100,7 +126,7 @@ for (const l of levels) {
 }
 
 levels.forEach((l, i) => {
-  if (l.level !== i + 1) error(`level numbering breaks at index ${i}: got ${l.level}, expected ${i + 1}`);
+  if (l.level !== i + 1) error(`free run numbering breaks at index ${i}: got ${l.level}, expected ${i + 1}`);
 });
 
 if (errors === 0) console.log('  ok');
@@ -152,7 +178,7 @@ function keysFor(id, answer) {
 let unsolvable = 0;
 let anagrams = 0;
 
-for (const l of levels) {
+for (const l of [...levels, ...packLevels]) {
   const keys = keysFor(l.id, l.answer);
   const missing = [...new Set(l.answer)].filter((c) => !keys.includes(c));
 

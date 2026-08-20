@@ -1,4 +1,5 @@
 import { LEVELS } from '@/content/levels';
+import { PACK_LEVELS } from '@/content/pack-levels';
 import { normalise, type GuessResult, type Word } from '@/lib/puzzles';
 
 /**
@@ -99,4 +100,43 @@ function editDistanceOne(a: string, b: string): boolean {
   }
 
   return edits + (long.length - j) === 1;
+}
+
+// ── Pack banks ─────────────────────────────────────────────────────────────
+
+/**
+ * Levels belonging to a pack.
+ *
+ * **A pack's levels are its own.** They share nothing with the free run — no
+ * answer appears in two banks, and `scripts/build-levels.mjs` throws if that
+ * ever stops being true. Session 7 got this wrong: packs were curated *views*
+ * over the free bank, so buying one bought fifty puzzles the player had
+ * already solved.
+ *
+ * Numbering restarts at 1 inside each pack. "Level 12 of Creatures" and
+ * "level 12" are different puzzles, which is why progress is keyed on the
+ * pack id as well as the number — see `packLevelKey`.
+ */
+export function packLevels(packId: string): Level[] {
+  return PACK_LEVELS[packId] ?? [];
+}
+
+export function packLevelAt(packId: string, n: number): Level | null {
+  const bank = packLevels(packId);
+  if (n < 1 || n > bank.length) return null;
+  return bank[n - 1] ?? null;
+}
+
+export function packLevelCount(packId: string): number {
+  return packLevels(packId).length;
+}
+
+/**
+ * The progress key for one pack level.
+ *
+ * Namespaced, because pack numbering restarts at 1 and a bare number would
+ * collide with the free run's level 1 — and with every other pack's.
+ */
+export function packLevelKey(packId: string, n: number): string {
+  return `${packId}:${n}`;
 }

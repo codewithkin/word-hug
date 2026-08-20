@@ -150,12 +150,17 @@ export default function RootLayout() {
                 {/* H — the end of the levels. NOT `/caught-up`, which is the
                     09 alternate state for the day's puzzle being done. */}
                 <Stack.Screen name="all-caught-up" options={OVERLAY} />
+                {/* The end of the free run. Fires once, from the map, after
+                    the celebration is gone. See the file for what it must
+                    never grow into. */}
+                <Stack.Screen name="free-run-complete" options={OVERLAY} />
 
                 {/* ── Screens ──────────────────────────────────────────── */}
                 {/* Session 7 — the four that were missing since session 3. */}
                 <Stack.Screen name="archive" />
                 <Stack.Screen name="packs" />
                 <Stack.Screen name="pack/[id]" />
+                <Stack.Screen name="pack-level/[id]/[n]" />
                 <Stack.Screen name="shop" />
 
                 <Stack.Screen name="archive-puzzle" />

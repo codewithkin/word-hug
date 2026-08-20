@@ -2,7 +2,14 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { isFirm, keyHaptic, solveHaptic, wrongGuessHaptic } from '@/lib/feedback';
-import { gradeLevelGuess, levelAt, type Level } from '@/lib/levels';
+import {
+  gradeLevelGuess,
+  levelAt,
+  packLevelAt,
+  packLevelCount,
+  packLevelKey,
+  type Level,
+} from '@/lib/levels';
 import { HEARTS_ENABLED, shouldSpendHeart } from '@/lib/lives';
 import { nudgeNote, type NudgeTier } from '@/lib/nudges';
 import { clueWords, compoundsFor, keysFor } from '@/lib/puzzles';
@@ -11,12 +18,18 @@ import {
   getCoins,
   getHearts,
   getLevelResult,
+  getLevelResults,
   getNudgeTier,
   isLevelSolved,
   isLevelUnlocked,
   recordLevelSolve,
   spendHeart,
 } from '@/lib/storage';
+
+/** Solved-ness by raw key, which is how pack levels are stored. */
+function isLevelSolvedKey(key: string): boolean {
+  return getLevelResults()[key] !== undefined;
+}
 
 /**
  * ── One level, playing ────────────────────────────────────────────────────
@@ -71,11 +84,23 @@ const NOTES = {
   close: 'So close — one letter off',
 } as const;
 
-export function useLevel(n: number): LevelGame {
-  const level = useMemo(() => levelAt(n), [n]);
+/**
+ * @param n      1-based level number, within its own bank.
+ * @param packId When given, plays that pack's bank instead of the free run.
+ *
+ * Pack numbering restarts at 1, so progress is keyed on `packId:n` — a bare
+ * number would collide with the free run's level 1 and with every other pack.
+ * Pack levels unlock linearly within the pack, independently of the free run:
+ * buying Creatures should not require finishing fifty free levels first.
+ */
+export function useLevel(n: number, packId?: string): LevelGame {
+  const level = useMemo(() => (packId ? packLevelAt(packId, n) : levelAt(n)), [n, packId]);
+  const key = packId ? packLevelKey(packId, n) : String(n);
 
-  const [unlocked] = useState(() => isLevelUnlocked(n));
-  const [replay] = useState(() => isLevelSolved(n));
+  const [unlocked] = useState(() =>
+    packId ? n === 1 || isLevelSolvedKey(packLevelKey(packId, n - 1)) : isLevelUnlocked(n)
+  );
+  const [replay] = useState(() => (packId ? isLevelSolvedKey(key) : isLevelSolved(n)));
 
   const [typed, setTyped] = useState('');
   const [phase, setPhase] = useState<LevelPhase>(unlocked ? 'playing' : 'locked');
@@ -101,12 +126,13 @@ export function useLevel(n: number): LevelGame {
 
     const tier = getNudgeTier(level.id);
     setNudgeTierState(tier);
-    if (tier >= 3 && !isLevelSolved(n)) {
+    const solved = packId ? isLevelSolvedKey(key) : isLevelSolved(n);
+    if (tier >= 3 && !solved) {
       setTyped(level.answer.toUpperCase());
       setPhase('playing');
       setResult(null);
     }
-  }, [level, n]);
+  }, [key, level, n, packId]);
 
   useFocusEffect(refresh);
 
@@ -164,7 +190,7 @@ export function useLevel(n: number): LevelGame {
     const graded = gradeLevelGuess(level, typed);
 
     if (graded === 'correct') {
-      recordLevelSolve(n, {
+      recordLevelSolve(key, {
         solvedAt: Date.now(),
         heartsLost,
         nudgeTier,
@@ -191,7 +217,7 @@ export function useLevel(n: number): LevelGame {
       setShakeTrigger((c) => c + 1);
       wrongGuessHaptic();
     }
-  }, [heartsLost, length, level, n, nudgeTier, outOfHearts, phase, replay, typed]);
+  }, [heartsLost, key, length, level, nudgeTier, outOfHearts, phase, replay, typed]);
 
   const note =
     phase === 'guessed' && result !== null
@@ -236,3 +262,6 @@ export function levelSummary(n: number) {
     result: getLevelResult(n),
   };
 }
+
+/** Kept honest: the pack screens read their length from here. */
+void packLevelCount;

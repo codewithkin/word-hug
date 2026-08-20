@@ -9,7 +9,7 @@ import { Appear } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { ScreenHeader } from '@/components/screen-header';
 import { packById } from '@/content/packs';
-import { levelAt } from '@/lib/levels';
+import { packLevelCount, packLevelKey } from '@/lib/levels';
 import { getLevelResults, ownsPack } from '@/lib/storage';
 
 /**
@@ -69,8 +69,10 @@ export default function PackDetail() {
     );
   }
 
-  const done = pack.levels.filter((n) => results[String(n)] !== undefined).length;
-  const nextUnsolved = pack.levels.find((n) => results[String(n)] === undefined);
+  const total = packLevelCount(pack.id);
+  const numbers = Array.from({ length: total }, (_, i) => i + 1);
+  const done = numbers.filter((n) => results[packLevelKey(pack.id, n)] !== undefined).length;
+  const nextUnsolved = numbers.find((n) => results[packLevelKey(pack.id, n)] === undefined);
 
   return (
     <View className="flex-1 bg-wh-ground">
@@ -85,7 +87,7 @@ export default function PackDetail() {
           </Text>
           {owned ? (
             <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
-              {done} of {pack.levels.length} solved
+              {done} of {total} solved
             </Text>
           ) : null}
         </Appear>
@@ -98,16 +100,22 @@ export default function PackDetail() {
           {/* The contents, visible whether or not it is owned. You can see
               what you would be buying. */}
           <View className="flex-row flex-wrap justify-between gap-y-2">
-            {pack.levels.map((n, i) => {
-              const level = levelAt(n);
-              const solved = results[String(n)] !== undefined;
+            {numbers.map((n, i) => {
+              const solved = results[packLevelKey(pack.id, n)] !== undefined;
+              // Exactly one `next` node, the same rule the free map uses — the
+              // eye should be able to find where you are without reading.
+              const state = !owned ? 'locked' : solved ? 'solved' : n === done + 1 ? 'next' : 'locked';
               return (
                 <LevelNode
                   key={n}
                   n={n}
                   index={i}
-                  state={!owned ? 'locked' : solved ? 'solved' : 'next'}
-                  onPress={owned ? () => router.push(`/level/${n}`) : undefined}
+                  state={state}
+                  onPress={
+                    owned && state !== 'locked'
+                      ? () => router.push(`/pack-level/${pack.id}/${n}`)
+                      : undefined
+                  }
                 />
               );
             })}
@@ -126,15 +134,13 @@ export default function PackDetail() {
           {owned ? (
             <ChunkyPressable
               offset={5}
-              shadowVar="--color-wh-primary-shadow"
-              onPress={() =>
-                router.push(`/level/${nextUnsolved ?? pack.levels[0] ?? 1}`)
-              }
+              shadowVar={pack.tint.shadowVar}
+              onPress={() => router.push(`/pack-level/${pack.id}/${nextUnsolved ?? 1}`)}
               accessibilityRole="button"
               accessibilityLabel={nextUnsolved ? 'Continue the pack' : 'Play it again'}
-              className="h-[58px] items-center justify-center rounded-[19px] bg-wh-primary"
+              className={`h-[58px] items-center justify-center rounded-[19px] ${pack.tint.fill}`}
             >
-              <Text className="font-wh-bold text-wh-xxl tracking-wh-wide text-wh-on-primary">
+              <Text className={`font-wh-bold text-wh-xxl tracking-wh-wide ${pack.tint.on}`}>
                 {nextUnsolved ? 'CONTINUE' : 'PLAY AGAIN'}
               </Text>
             </ChunkyPressable>

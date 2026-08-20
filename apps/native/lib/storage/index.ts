@@ -7,6 +7,7 @@ import {
   INSTALL_COIN_GRANT,
   INSTANCE,
   MAX_HEARTS,
+  FREE_RUN_SHOWN_KEY,
   OWNED_PACKS_KEY,
   PREFS,
   PROGRESS,
@@ -355,9 +356,14 @@ export function getLevelResult(n: number): LevelResult | undefined {
  * `Math.max` rather than assignment: replaying level 3 after reaching 40 must
  * not send the player back to 3. The frontier only ever moves forward.
  */
-export function recordLevelSolve(n: number, result: LevelResult): void {
-  writeJson(progress, PROGRESS.levelResults, { ...getLevelResults(), [String(n)]: result });
-  progress.set(PROGRESS.levelHighest, Math.max(getHighestLevel(), n));
+export function recordLevelSolve(key: string | number, result: LevelResult): void {
+  writeJson(progress, PROGRESS.levelResults, { ...getLevelResults(), [String(key)]: result });
+
+  // Only the free run has a frontier. A pack key looks like `creatures:12` and
+  // must never move it — buying a pack would otherwise appear to unlock the
+  // free run up to level 12.
+  const n = Number(key);
+  if (Number.isInteger(n)) progress.set(PROGRESS.levelHighest, Math.max(getHighestLevel(), n));
 }
 
 // ── Packs ──────────────────────────────────────────────────────────────────
@@ -386,6 +392,19 @@ export function grantPack(id: string): void {
   const owned = getOwnedPacks();
   if (owned.includes(id)) return;
   writeJson(progress, OWNED_PACKS_KEY, [...owned, id]);
+}
+
+/**
+ * The end-of-free-run sheet: has it been shown?
+ *
+ * Read-and-set in one call, because the caller is a focus effect on the map
+ * and a separate read/write would show the sheet twice on a fast remount.
+ * Returns true exactly once in the lifetime of an install.
+ */
+export function claimFreeRunPrompt(): boolean {
+  if (prefs.getBoolean(FREE_RUN_SHOWN_KEY) === true) return false;
+  prefs.set(FREE_RUN_SHOWN_KEY, true);
+  return true;
 }
 
 // ── Hearts ─────────────────────────────────────────────────────────────────

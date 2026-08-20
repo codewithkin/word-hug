@@ -12,6 +12,7 @@ import { BLOCK_SIZE, LEVEL_COUNT, levelBlocks } from '@/lib/levels';
 import { HEART_REFILL_COST, HEARTS_ENABLED, MAX_HEARTS } from '@/lib/lives';
 import { puzzleChip, puzzleForDate } from '@/lib/puzzles';
 import {
+  claimFreeRunPrompt,
   effectiveToday,
   getCoins,
   getHearts,
@@ -87,6 +88,22 @@ export default function Home() {
   }, [daily]);
 
   useFocusEffect(refresh);
+
+  /**
+   * The end of the free run, once.
+   *
+   * On focus rather than at the moment of the solve: the celebration is still
+   * up then, and putting an offer over it would break rule 3. By the time the
+   * map has focus the solve is finished and the player is between things,
+   * which is the only place in the app an unasked-for offer belongs.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (getHighestLevel() < LEVEL_COUNT) return;
+      if (!claimFreeRunPrompt()) return;
+      router.push('/free-run-complete');
+    }, [])
+  );
 
   const jumpToCurrent = useCallback(() => {
     const index = Math.floor((next - 1) / BLOCK_SIZE);

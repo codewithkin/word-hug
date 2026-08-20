@@ -19,9 +19,9 @@
  * this one reads only the app's own source, runs in well under a second, and
  * cannot hang.
  *
- * It catches: an unimported component, a renamed export, a helper deleted from
- * one file and still called in another, and a prop passed to a local component
- * that the component does not declare.
+ * It catches: a syntax error, an unimported component, a renamed export, a
+ * helper deleted from one file and still called in another, and a prop passed
+ * to a local component that the component does not declare.
  * It does not catch: types, nullability, or anything else tsc exists for.
  *
  * ── The props pass ────────────────────────────────────────────────────────
@@ -51,7 +51,8 @@
  * code has to be read: 0 is a pass, 124 is a timeout that checked nothing.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { globSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -79,6 +80,29 @@ function walk(dir, out = []) {
   return out;
 }
 
+/**
+ * ── Pass 0: does it parse? ────────────────────────────────────────────────
+ * Added after a `{/* comment *\/}` was placed as the body of a ternary branch
+ * — invalid JSX, and every other pass in this file sailed past it because they
+ * are all regexes over text. A file that does not parse is not worth analysing.
+ *
+ * `@babel/parser` is already in the tree as a transitive dependency, resolved
+ * by path because the app does not depend on it directly. If it ever goes
+ * missing this pass skips loudly rather than silently passing — the whole
+ * lesson of the timing-out typecheck.
+ */
+function loadParser() {
+  const guesses = globSync(join(ROOT, 'node_modules/.pnpm/@babel+parser@*/node_modules/@babel/parser'));
+  for (const dir of guesses) {
+    try {
+      return createRequire(import.meta.url)(dir).parse;
+    } catch {
+      // Try the next one.
+    }
+  }
+  return null;
+}
+
 const files = DIRS.flatMap((d) => {
   try {
     return walk(join(SRC, d));
@@ -86,6 +110,25 @@ const files = DIRS.flatMap((d) => {
     return [];
   }
 });
+
+const parseSource = loadParser();
+
+if (!parseSource) {
+  console.error('  ERROR  @babel/parser not resolvable — the syntax pass did not run');
+  errors++;
+} else {
+  for (const full of files) {
+    try {
+      parseSource(readFileSync(full, 'utf8'), {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx'],
+      });
+    } catch (e) {
+      errors++;
+      console.error(`  ERROR  ${relative(SRC, full).replace(/\\/g, '/')}: ${e.message}`);
+    }
+  }
+}
 
 for (const full of files) {
   const raw = readFileSync(full, 'utf8');

@@ -216,7 +216,19 @@ for (const route of orphans) {
 
 /** The owner's rule: home, or one screen away from home. */
 const MAX_DEPTH = 2;
-const deep = [...depth.entries()].filter(([r, d]) => d > MAX_DEPTH && !EXEMPT.has(r));
+
+/**
+ * Depth exemptions — reachable, but legitimately further than two hops.
+ *
+ * `/pack-level/[id]/[n]` is home → packs → a pack → a level in it. That third
+ * hop is the pack itself, and it is not navigation overhead: you cannot play
+ * "level 12" of a pack without saying which pack. Flattening it would mean a
+ * global list of 250 pack levels on the home screen, which is worse.
+ */
+const DEEP_OK = new Set(['/pack-level/[id]/[n]']);
+const deep = [...depth.entries()].filter(
+  ([r, d]) => d > MAX_DEPTH && !EXEMPT.has(r) && !DEEP_OK.has(r)
+);
 
 for (const [route, d] of deep) {
   warn(`${route} is ${d} hops from home — the rule is ${MAX_DEPTH}`);

@@ -9,6 +9,7 @@ import { OfflineBanner } from '@/components/notice';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { ScreenHeader } from '@/components/screen-header';
 import { BUNDLE, PACKS } from '@/content/packs';
+import { packLevelCount } from '@/lib/levels';
 import { getCoins, getOwnedPacks } from '@/lib/storage';
 
 /**
@@ -149,7 +150,7 @@ export default function Shop() {
                         {pack.name}
                       </Text>
                       <Text className="font-wh-regular text-[13.5px] text-wh-text-muted dark:text-wh-text-quiet">
-                        {pack.levels.length} puzzles
+                        {packLevelCount(pack.id)} puzzles
                       </Text>
                     </View>
                     <Chunky

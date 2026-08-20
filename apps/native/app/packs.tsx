@@ -8,6 +8,7 @@ import { Appear } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { ScreenHeader } from '@/components/screen-header';
 import { BUNDLE, PACKS } from '@/content/packs';
+import { packLevelCount, packLevelKey } from '@/lib/levels';
 import { getLevelResults, getOwnedPacks } from '@/lib/storage';
 
 /**
@@ -63,22 +64,23 @@ export default function PackList() {
         >
           {PACKS.map((pack, i) => {
             const has = owned.includes(pack.id);
-            const done = pack.levels.filter((n) => results[String(n)] !== undefined).length;
+            const total = packLevelCount(pack.id);
+            const done = Array.from({ length: total }, (_, i) =>
+              packLevelKey(pack.id, i + 1)
+            ).filter((k) => results[k] !== undefined).length;
 
             return (
               <Appear key={pack.id} index={i} delay={80}>
                 <ChunkyPressable
                   offset={4}
-                  shadowVar={
-                    has ? '--color-wh-clue-card-shadow' : '--color-wh-surface-shadow'
-                  }
+                  shadowVar={has ? pack.tint.shadowVar : '--color-wh-surface-shadow'}
                   onPress={() =>
                     router.push({ pathname: '/pack/[id]', params: { id: pack.id } })
                   }
                   accessibilityRole="button"
                   accessibilityLabel={
                     has
-                      ? `${pack.name}. ${done} of ${pack.levels.length} solved.`
+                      ? `${pack.name}. ${done} of ${total} solved.`
                       : `${pack.name}. ${pack.price}.`
                   }
                   className={
@@ -92,10 +94,15 @@ export default function PackList() {
                       {pack.name}
                     </Text>
 
+                    {/* Owned: a progress count in the pack's own accent, so
+                        the list reads as five different things rather than
+                        five rows. Unowned: the price. Same size either way. */}
                     {has ? (
-                      <Text className="font-wh-heavy text-wh-sm text-wh-accent-text">
-                        {done}/{pack.levels.length}
-                      </Text>
+                      <View className={`rounded-wh-pill px-[10px] py-[3px] ${pack.tint.fill}`}>
+                        <Text className={`font-wh-heavy text-wh-sm ${pack.tint.on}`}>
+                          {done}/{total}
+                        </Text>
+                      </View>
                     ) : (
                       <Chunky
                         offset={3}

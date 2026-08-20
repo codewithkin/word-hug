@@ -84,3 +84,9 @@ export const DEFAULT_REMINDER_TIME = '09:00';
 
 /** Pack ids the player owns. RevenueCat is the truth; this is the local cache. */
 export const OWNED_PACKS_KEY = 'packs.owned';
+
+/**
+ * Whether the end-of-free-run sheet has been shown. **Once, ever.**
+ * An offer that reappears is a nag, not an offer.
+ */
+export const FREE_RUN_SHOWN_KEY = 'offer.freeRunShown';
