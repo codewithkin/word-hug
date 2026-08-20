@@ -28,7 +28,25 @@ import { join } from 'node:path';
 // All of these are first guesses. The point of the spike is to find out
 // whether they are right. Expect to move MIN_COMPOUND_F in particular.
 
-const MIN_COMPOUND_F = 0.05; // occurrences per million. thunderstorm=0.82, thunderstrike=0.00
+/**
+ * Occurrences per million. thunderstorm=0.82, thunderstrike=0.00.
+ *
+ * ── Moved from 0.05 to 0.02 ───────────────────────────────────────────────
+ * The header of this file always said "expect to move MIN_COMPOUND_F in
+ * particular", and the first full run of the 300-puzzle bank is the data that
+ * justifies it: 82 rejections, and the top of that list was saltcellar 0.0487,
+ * wingnut 0.0481, glowworm 0.0481, dishrag 0.0473, flypaper 0.0471,
+ * thumbtack 0.0405, shoehorn 0.0404. Every one an ordinary English compound.
+ *
+ * Real-but-uncommon compounds live around 0.02–0.05; the genuine nonsense the
+ * spike was built to catch sits at 0.0000. A floor of 0.02 separates those two
+ * populations, where 0.05 was cutting through the middle of the first one.
+ *
+ * This also tightens the uniqueness search, because the same floor decides
+ * which candidate answers count — a lower floor means MORE possible alternate
+ * answers, not fewer. That is the correct direction to be wrong in.
+ */
+const MIN_COMPOUND_F = 0.02;
 const MIN_ANSWER_F = 1.0; // the answer itself must be a common word
 const MIN_CLUE_F = 1.0; // clue words must be common too — no obscure clues
 const MAX_CANDIDATES = 1000; // Datamuse hard cap
@@ -98,9 +116,31 @@ function stripClue(wordForm, clue, position) {
   return stem.replace(/^[\s-]+|[\s-]+$/g, '');
 }
 
-/** Datamuse spell-corrected the query — a strong signal the word is not real. */
-function wasSpellCorrected(entry) {
-  return (entry?.tags ?? []).some((t) => t.startsWith('spellcor:'));
+/**
+ * Did Datamuse actually fail to find the word we asked for?
+ *
+ * ── The bug this replaces ─────────────────────────────────────────────────
+ * The first version returned true whenever a `spellcor:` tag was present, and
+ * rejected roughly ninety real compounds across the bank:
+ *
+ *   forklift  tags: ["query", "spellcor:for life", "f:0.177494"]
+ *   turnkey   tags: ["query", "spellcor:turkey",   "f:0.287030"]
+ *   riverbed  tags: ["query", "spellcor:diverted", "f:0.260079"]
+ *
+ * `spellcor:` is Datamuse *offering* a correction — "did you mean turkey?" —
+ * not saying the query was wrong. The `query` tag is the one that matters: it
+ * means the returned word IS the word we asked for, and there it sits with its
+ * own frequency.
+ *
+ * So: a word is missing only when the result does not carry `query` and the
+ * returned spelling differs from what we asked for. `lookup` already rejects a
+ * differing spelling, which makes this the belt to that braces.
+ */
+function wasSpellCorrected(entry, term) {
+  const tags = entry?.tags ?? [];
+  if (tags.includes('query')) return false;
+  if (term && normalizeForm(entry?.word ?? '') === normalizeForm(term)) return false;
+  return tags.some((t) => t.startsWith('spellcor:'));
 }
 
 function zipf(fPerMillion) {
@@ -124,7 +164,7 @@ async function lookup(term) {
     term,
     found: true,
     f: freqOf(hit),
-    spellCorrected: wasSpellCorrected(hit),
+    spellCorrected: wasSpellCorrected(hit, term),
   };
 }
 
@@ -191,7 +231,7 @@ async function candidatesForClue(clue, position) {
   for (const entry of results) {
     const wordForm = entry.word.toLowerCase();
     const stem = stripClue(wordForm, clue, position);
-    if (stem.length < 2) continue; // the clue word itself, or a fragment
+    if (stem.length < 3) continue; // the clue word itself, or a fragment
 
     const key = normalizeForm(stem);
     const isJoined = !/[\s-]/.test(wordForm);
@@ -214,6 +254,42 @@ async function candidatesForClue(clue, position) {
   return out;
 }
 
+/**
+ * Is `stem` just an inflected form of `answer`, rather than a different word?
+ *
+ * The first full run reported `berries` as an alternate answer for `berry`,
+ * `sticks` for `stick`, `nails` for `nail` and `marks` for `mark`. Those are
+ * the same word wearing a plural, and a player typing them would be typing the
+ * answer. Counting them as collisions would have had us rewrite four perfectly
+ * good puzzles.
+ */
+function isInflectionOf(stem, answer) {
+  if (stem === answer) return true;
+
+  const [short, long] = stem.length <= answer.length ? [stem, answer] : [answer, stem];
+  if (!long.startsWith(short.slice(0, Math.max(2, short.length - 1)))) return false;
+
+  const suffixes = ['s', 'es', 'ed', 'ing', 'd', 'r', 'er'];
+  for (const suffix of suffixes) {
+    if (long === short + suffix) return true;
+    // berry → berries, city → cities
+    if (short.endsWith('y') && long === `${short.slice(0, -1)}ies`) return true;
+  }
+  return false;
+}
+
+/**
+ * Bare affixes that Datamuse's `sp=*clue` search leaves behind.
+ *
+ * Searching for words ending in `site` turns up `er` and `ers` as stems of
+ * `siter`/`siters`-shaped fragments. They are not words and cannot be typed as
+ * an answer, so they are not alternate answers.
+ */
+const AFFIXES = new Set([
+  'ing', 'ed', 'er', 'ers', 'es', 's', 'ly', 'ness', 'ment', 'tion', 'ion',
+  'able', 'ible', 'ful', 'less', 'ish', 'est', 'ward', 'wards',
+]);
+
 async function checkUniqueness(answer, clues) {
   const sets = [];
   for (const { word, position } of clues) {
@@ -226,10 +302,23 @@ async function checkUniqueness(answer, clues) {
   }
 
   const target = normalizeForm(answer);
+
+  /**
+   * A real alternate answer is a different word a player could actually type.
+   * Inflections of the intended answer and bare affixes are neither.
+   */
+  const collisions = intersection.filter(
+    (w) =>
+      w !== target &&
+      w.length >= 3 &&
+      !AFFIXES.has(w) &&
+      !isInflectionOf(w, target)
+  );
+
   return {
     setSizes: sets.map((s) => ({ clue: s.clue, count: s.map.size })),
     intersection: intersection.sort(),
-    collisions: intersection.filter((w) => w !== target),
+    collisions,
     foundIntended: intersection.includes(target),
   };
 }
