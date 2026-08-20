@@ -48,6 +48,7 @@ export interface SolvedBoardProps {
   rows: SolvedRow[];
   answer: string;
   streak: number;
+  /** Session 8: the archive is retired; this goes to the level map. */
   onArchive?: () => void;
 }
 
@@ -108,11 +109,11 @@ export function SolvedBoard({ rows, answer, streak, onArchive }: SolvedBoardProp
           shadowVar="--color-wh-primary-shadow"
           onPress={onArchive}
           accessibilityRole="button"
-          accessibilityLabel="Play the archive"
+          accessibilityLabel="Back to the levels"
           className="h-[58px] flex-1 items-center justify-center rounded-[19px] bg-wh-primary"
         >
           <Text className="font-wh-bold text-wh-xl tracking-[0.05em] text-wh-on-primary">
-            PLAY THE ARCHIVE
+            SELECT LEVEL
           </Text>
         </ChunkyPressable>
 

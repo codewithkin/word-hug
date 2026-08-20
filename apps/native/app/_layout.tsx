@@ -137,8 +137,6 @@ export default function RootLayout() {
                 <Stack.Screen name="nudge-picker" options={OVERLAY} />
                 {/* C — reached from B, and only when the balance is zero. */}
                 <Stack.Screen name="zero-coin" options={OVERLAY} />
-                {/* E — reached from the Archive, past the seventh day back. */}
-                <Stack.Screen name="archive-locked" options={OVERLAY} />
                 {/* F — a banner in the product; the Shop mounts it directly.
                     The route exists only so it can be looked at. */}
                 <Stack.Screen name="offline-notice" options={OVERLAY} />
@@ -156,14 +154,19 @@ export default function RootLayout() {
                 <Stack.Screen name="free-run-complete" options={OVERLAY} />
 
                 {/* ── Screens ──────────────────────────────────────────── */}
-                {/* Session 7 — the four that were missing since session 3. */}
-                <Stack.Screen name="archive" />
+                {/*
+                  Session 8: the archive is gone — `/archive`, `/archive-puzzle`,
+                  `/archive-day-one` and overlay E. It existed to let a player
+                  catch up on missed daily puzzles, which was the whole point
+                  when the product WAS the daily puzzle. With 50 free levels
+                  and 250 in packs there is always something to play, and a
+                  second list of old dailies was a screen nobody needed.
+                */}
                 <Stack.Screen name="packs" />
                 <Stack.Screen name="pack/[id]" />
                 <Stack.Screen name="pack-level/[id]/[n]" />
                 <Stack.Screen name="shop" />
 
-                <Stack.Screen name="archive-puzzle" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="how-to-play" />
                 <Stack.Screen name="stats" />
@@ -186,7 +189,6 @@ export default function RootLayout() {
                 <Stack.Screen name="wrong-guess" options={{ animation: 'fade' }} />
                 <Stack.Screen name="near-miss" options={{ animation: 'fade' }} />
                 <Stack.Screen name="caught-up" options={{ animation: 'fade' }} />
-                <Stack.Screen name="archive-day-one" />
                 <Stack.Screen name="nothing-owned" />
                 <Stack.Screen name="store-unreachable" />
                 <Stack.Screen name="stats-empty" />

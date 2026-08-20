@@ -67,7 +67,7 @@ export default function SolvedToday() {
           rows={SOLVED}
           answer="HOUSE"
           streak={13}
-          onArchive={() => router.push('/archive-puzzle')}
+          onArchive={() => router.replace('/home')}
         />
       </View>
     </View>

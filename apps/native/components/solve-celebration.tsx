@@ -52,6 +52,15 @@ export interface SolveCelebrationProps {
   streak?: number;
   onClose?: () => void;
   onArchive?: () => void;
+  /**
+   * What the onward button says.
+   *
+   * Session 8: it was hard-coded to "PLAY THE ARCHIVE". The archive has been
+   * retired — the level map is where you go next — so the caller names its own
+   * destination: "NEXT LEVEL" from a level, "BACK HOME" from the last one or
+   * from the daily puzzle.
+   */
+  onwardLabel?: string;
 }
 
 const DEFAULT_COMPOUNDS = [
@@ -66,6 +75,7 @@ export function SolveCelebration({
   streak = 13,
   onClose,
   onArchive,
+  onwardLabel = 'BACK HOME',
 }: SolveCelebrationProps) {
   const insets = useSafeAreaInsets();
   const letters = [...answer];
@@ -160,13 +170,13 @@ export function SolveCelebration({
             shadowVar="--color-wh-primary-shadow"
             onPress={onArchive}
             accessibilityRole="button"
-            accessibilityLabel="Play the archive"
+            accessibilityLabel={onwardLabel.toLowerCase()}
             className="h-[58px] items-center justify-center rounded-[19px] bg-wh-primary"
           >
             {/* 0.05em, not `tracking-wh-wide` (0.06em). The button on this
                 overlay is a hair tighter than the one in onboarding. */}
             <Text className="font-wh-bold text-[21px] tracking-[0.05em] text-wh-on-primary">
-              PLAY THE ARCHIVE
+              {onwardLabel}
             </Text>
           </ChunkyPressable>
         </Appear>

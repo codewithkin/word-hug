@@ -359,12 +359,15 @@ export function NudgeButton({
       shadowVar="--color-wh-surface-shadow"
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={
-        pips ? `Nudge, ${remaining ?? 0} of ${pips} left` : 'Nudge'
-      }
+      accessibilityLabel={pips ? `Hint, ${remaining ?? 0} of ${pips} left` : 'Hint'}
       className="flex-row items-center gap-[9px] rounded-wh-pill bg-wh-surface px-[18px] py-[11px]"
     >
-      <Text className="font-wh-heavy text-wh-base text-wh-pill-text">Nudge</Text>
+      {/* The ? glyph, as the owner asked — one mark that means "help" wherever
+          it appears, rather than a word the player has to learn. */}
+      <View className="h-[22px] w-[22px] items-center justify-center rounded-wh-pill bg-wh-primary">
+        <Text className="font-wh-bold text-wh-sm text-wh-on-primary">?</Text>
+      </View>
+      <Text className="font-wh-heavy text-wh-base text-wh-pill-text">Hint</Text>
       {pips ? (
         <View className="flex-row gap-1">
           {Array.from({ length: pips }, (_, i) =>
