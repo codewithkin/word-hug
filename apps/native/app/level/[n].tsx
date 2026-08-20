@@ -3,42 +3,39 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChunkyPressable } from '@/components/chunky';
+import { CoinPill } from '@/components/coin-pill';
+import { GameActions, GameBoard } from '@/components/game-board';
 import { HeartsMeter } from '@/components/hearts-meter';
-import { Appear, Shake } from '@/components/motion';
+import { Appear } from '@/components/motion';
 import { GuessNote } from '@/components/notice';
-import {
-  AnswerRow,
-  BOARD_TIMINGS,
-  ClueStack,
-  LetterKeys,
-  NudgeButton,
-  PuzzleEyebrow,
-  PuzzleHeader,
-} from '@/components/puzzle-board';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { SolveCelebration } from '@/components/solve-celebration';
+import { useToast } from '@/components/toast';
 import { useLevel } from '@/hooks/use-level';
 import { LEVEL_COUNT } from '@/lib/levels';
-import { HEART_REFILL_COST, HEARTS_ENABLED, MAX_HEARTS } from '@/lib/lives';
+import { HEART_REFILL_COST, HEARTS_ENABLED } from '@/lib/lives';
 import { refillHearts } from '@/lib/storage';
 
 /**
  * ── /level/[n] ────────────────────────────────────────────────────────────
- * One level. Session 7.
+ * One level of the free run. Rebuilt in session 8 on `components/game-board`.
  *
- * Built from `components/puzzle-board.tsx` rather than from a design file,
- * because there is no design file for levels — the archive and pack screens
- * (11 and 14) are the same board and this is a third caller of it. That is the
- * generalisation `progress/00-START-HERE.md` item 5 was waiting for, and it
- * arrived from a direction nobody planned.
+ * ── Why it changed ────────────────────────────────────────────────────────
+ * It was composed from `AnswerRow` and `LetterKeys`, which flex edge-to-edge,
+ * and the owner reported the tiles as cramped next to the Daily board's. They
+ * were: Daily centres fixed-width tiles inside 22px gutters. Rather than copy
+ * Daily's numbers into a second file — the mistake that produced three
+ * drifting keycap sizes — the layout moved into one component and this screen
+ * became a caller of it.
  *
- * ── What differs from the daily board ─────────────────────────────────────
- * · A heart meter in the header, and guesses stop at zero.
- * · No streak line in the footer. The streak is on the map now, and a level
- *   is not the ritual.
- * · The solve pushes forward to the next level instead of closing to a
- *   resting state. That is the level loop: the reward for finishing is the
- *   next one, immediately, with no screen in between.
+ * ── The header ────────────────────────────────────────────────────────────
+ * Back button, coins, hearts. All three are new here:
+ * · **Back** — the owner asked for one. The board previously relied on the
+ *   hardware gesture, which is not an affordance.
+ * · **Coins** — you cannot decide whether to buy a hint without knowing what
+ *   you have, and the hint button is right there.
+ * · **Hearts** — hidden on a replay, because a level you have beaten costs
+ *   nothing to attempt again.
  */
 export default function LevelScreen() {
   const insets = useSafeAreaInsets();
@@ -46,6 +43,7 @@ export default function LevelScreen() {
   const n = Number(params.n ?? '1');
 
   const game = useLevel(Number.isFinite(n) ? n : 1);
+  const { toast, show, node: toastNode } = useToast();
 
   const {
     level,
@@ -57,6 +55,7 @@ export default function LevelScreen() {
     used,
     note,
     nudgeLine,
+    coins,
     hearts,
     nextHeartInMs,
     outOfHearts,
@@ -70,23 +69,23 @@ export default function LevelScreen() {
     refresh,
   } = game;
 
-  if (!level) {
+  if (!level || locked) {
     return (
       <View className="flex-1 items-center justify-center bg-wh-ground px-8">
         <PuzzleGround />
         <Text className="pb-5 text-center font-wh-bold text-wh-lg text-wh-clue-text">
-          That level isn&apos;t here yet.
+          {level ? `Finish level ${n - 1} first.` : "That level isn't here yet."}
         </Text>
         <ChunkyPressable
           offset={5}
           shadowVar="--color-wh-primary-shadow"
           onPress={() => router.replace('/home')}
           accessibilityRole="button"
-          accessibilityLabel="Back to the map"
+          accessibilityLabel="Select a level"
           className="h-[58px] items-center justify-center rounded-[19px] bg-wh-primary px-8"
         >
           <Text className="font-wh-bold text-wh-xl tracking-wh-wide text-wh-on-primary">
-            BACK TO THE MAP
+            SELECT LEVEL
           </Text>
         </ChunkyPressable>
       </View>
@@ -94,42 +93,34 @@ export default function LevelScreen() {
   }
 
   /**
-   * A locked level is reachable only by typing a URL or by a stale map, so
-   * this is a guard rather than a screen. It says which level to finish
-   * instead of just refusing.
+   * Refilling, and saying so when it cannot happen.
+   *
+   * The owner tapped a priced hint with no coins and got silence. Every path
+   * that can fail now says why, inline — see `components/toast.tsx`.
    */
-  if (locked) {
-    return (
-      <View className="flex-1 items-center justify-center bg-wh-ground px-8">
-        <PuzzleGround />
-        <Text className="pb-2 text-center font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
-          Level {n}
-        </Text>
-        <Text className="pb-5 text-center font-wh-bold text-wh-lg text-wh-clue-text">
-          Finish level {n - 1} first.
-        </Text>
-        <ChunkyPressable
-          offset={5}
-          shadowVar="--color-wh-primary-shadow"
-          onPress={() => router.replace('/home')}
-          accessibilityRole="button"
-          accessibilityLabel="Back to the map"
-          className="h-[58px] items-center justify-center rounded-[19px] bg-wh-primary px-8"
-        >
-          <Text className="font-wh-bold text-wh-xl tracking-wh-wide text-wh-on-primary">
-            BACK TO THE MAP
-          </Text>
-        </ChunkyPressable>
-      </View>
-    );
-  }
-
   function onRefill() {
     if (refillHearts()) {
       refresh();
+      show({ message: 'Hearts refilled', tone: 'done' });
       return;
     }
-    router.push('/zero-coin');
+    show({
+      message: `Need ${HEART_REFILL_COST} coins to refill`,
+      actionLabel: 'Get some',
+      onAction: () => router.push({ pathname: '/shop', params: { coins: '1' } }),
+    });
+  }
+
+  function onSubmit() {
+    if (outOfHearts) {
+      show({
+        message: 'Out of hearts — they come back on their own',
+        actionLabel: 'Refill',
+        onAction: onRefill,
+      });
+      return;
+    }
+    submit();
   }
 
   const hasNext = n < LEVEL_COUNT;
@@ -139,58 +130,66 @@ export default function LevelScreen() {
       <PuzzleGround />
 
       <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        <PuzzleHeader title={`Level ${n}`} onBack={() => router.replace('/home')} />
+        {/* ── Header: back, hearts, coins ─────────────────────────────── */}
+        <Appear
+          rise={-6}
+          className="h-[60px] flex-row items-center justify-between gap-2 px-[18px] pt-[6px]"
+        >
+          <ChunkyPressable
+            offset={3}
+            shadowVar="--color-wh-surface-shadow"
+            onPress={() => router.replace('/home')}
+            accessibilityRole="button"
+            accessibilityLabel="Back to the levels"
+            className="h-[46px] w-[46px] items-center justify-center rounded-wh-card bg-wh-surface"
+          >
+            {/* The design nudges this glyph up with a 4px bottom padding — a
+                chevron sits low in its own line box and looks off-centre
+                without it. */}
+            <Text className="pb-1 font-wh-bold text-wh-h2 leading-none text-wh-text-faint dark:text-wh-text-secondary">
+              ‹
+            </Text>
+          </ChunkyPressable>
 
-        <View className="h-[30px] flex-row items-center justify-center gap-3">
-          <PuzzleEyebrow>{replay ? 'Replay' : `${n} of ${LEVEL_COUNT}`}</PuzzleEyebrow>
-        </View>
-
-        {HEARTS_ENABLED && !replay ? (
-          <Appear delay={80} className="items-center pb-1">
-            <HeartsMeter hearts={hearts} nextInMs={nextHeartInMs} onPress={onRefill} />
-          </Appear>
-        ) : null}
-
-        {/* The board shakes, not the clues. Shaking the whole screen would
-            move the three words the player is reading, which is the one thing
-            on screen that is not wrong. */}
-        <ClueStack clues={clues} />
-
-        <Shake trigger={shakeTrigger}>
-          <View className="gap-[11px] px-5">
-            <AnswerRow
-              length={level.answer.length}
-              typed={typed}
-              canSubmit={canSubmit && !outOfHearts}
-              onSubmit={submit}
-            />
-            <LetterKeys
-              keys={keys.map((letter) => ({ letter, used: used.has(letter) }))}
-              onKey={press}
-              onBackspace={backspace}
-            />
+          <View className="flex-1 flex-row items-center justify-end gap-[7px]">
+            {HEARTS_ENABLED && !replay ? (
+              <HeartsMeter hearts={hearts} nextInMs={nextHeartInMs} onPress={onRefill} />
+            ) : null}
+            <CoinPill coins={coins} />
           </View>
-        </Shake>
+        </Appear>
+
+        {/* ── Which level ─────────────────────────────────────────────── */}
+        <Appear delay={60} className="h-[42px] items-center justify-center">
+          <View className="rounded-wh-pill bg-wh-chip-surface px-[18px] py-[7px]">
+            <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-chip-text">
+              {replay ? `Level ${n} · replay` : `Level ${n} of ${LEVEL_COUNT}`}
+            </Text>
+          </View>
+        </Appear>
+
+        <GameBoard
+          clues={clues}
+          length={level.answer.length}
+          typed={typed}
+          keys={keys}
+          used={used}
+          coins={coins}
+          canSubmit={canSubmit}
+          shakeTrigger={shakeTrigger}
+          onKey={press}
+          onBackspace={backspace}
+          onSubmit={onSubmit}
+          onHint={() =>
+            router.push({ pathname: '/nudge-picker', params: { puzzleId: level.id } })
+          }
+        />
 
         {/* ── The line under the board ────────────────────────────────────
-            Priority: an empty meter beats a guess note beats a nudge line.
-            Only one of the three is ever useful at a time and stacking them
-            would push the footer off a short screen. */}
-        {outOfHearts ? (
-          <Appear rise={4} className="h-[44px] items-center px-[22px] pt-2">
-            <ChunkyPressable
-              offset={4}
-              shadowVar="--color-wh-primary-shadow"
-              onPress={onRefill}
-              accessibilityRole="button"
-              accessibilityLabel={`Out of hearts. Refill all ${MAX_HEARTS} for ${HEART_REFILL_COST} coins.`}
-              className="flex-row items-center gap-2 rounded-wh-pill bg-wh-primary px-[18px] py-[9px]"
-            >
-              <Text className="font-wh-bold text-wh-base text-wh-on-primary">
-                Out of hearts — refill for {HEART_REFILL_COST}
-              </Text>
-            </ChunkyPressable>
-          </Appear>
+            One at a time: a toast beats a guess note beats a standing hint.
+            Stacking them would push the actions off a short screen. */}
+        {toast ? (
+          toastNode
         ) : note ? (
           <GuessNote tone={note.tone}>{note.text}</GuessNote>
         ) : nudgeLine ? (
@@ -199,21 +198,15 @@ export default function LevelScreen() {
           <View className="h-[44px]" />
         )}
 
-        <Appear
-          delay={BOARD_TIMINGS.footer}
-          className="h-[60px] flex-row items-center justify-between px-[22px]"
-        >
-          <NudgeButton
-            onPress={() =>
-              router.push({ pathname: '/nudge-picker', params: { puzzleId: level.id } })
-            }
-          />
-          {replay ? (
-            <Text className="font-wh-bold text-wh-sm text-wh-text-whisper">
-              Replay · nothing at stake
-            </Text>
-          ) : null}
-        </Appear>
+        <GameActions
+          coins={coins}
+          canSubmit={canSubmit}
+          onHint={() =>
+            router.push({ pathname: '/nudge-picker', params: { puzzleId: level.id } })
+          }
+          onSubmit={onSubmit}
+          onBackspace={backspace}
+        />
       </View>
 
       {phase === 'solved' ? (
@@ -225,6 +218,7 @@ export default function LevelScreen() {
           onArchive={() =>
             hasNext ? router.replace(`/level/${n + 1}`) : router.replace('/home')
           }
+          onwardLabel={hasNext ? 'NEXT LEVEL' : 'BACK HOME'}
         />
       ) : null}
     </View>
