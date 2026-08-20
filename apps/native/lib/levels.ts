@@ -140,3 +140,12 @@ export function packLevelCount(packId: string): number {
 export function packLevelKey(packId: string, n: number): string {
   return `${packId}:${n}`;
 }
+
+/** A pack level by its generated id, across every pack. */
+export function packLevelById(id: string): Level | undefined {
+  for (const bank of Object.values(PACK_LEVELS)) {
+    const hit = bank.find((l) => l.id === id);
+    if (hit) return hit;
+  }
+  return undefined;
+}

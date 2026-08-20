@@ -5,7 +5,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Chunky } from '@/components/chunky';
 import { Sheet } from '@/components/sheet';
 import { NUDGE_RUNGS, categoryLabel } from '@/lib/nudges';
-import { puzzleById, puzzleForDate } from '@/lib/puzzles';
+import { findPuzzleById } from '@/lib/content';
+import { puzzleForDate } from '@/lib/puzzles';
 import { effectiveToday, getCoins, getNudgeTier, setNudgeTier, spendCoins } from '@/lib/storage';
 
 /**
@@ -169,8 +170,18 @@ export default function NudgePicker() {
 
   // Falls back to today's daily so the sheet still works when the scaffolding
   // link row opens it with no params.
-  const puzzle =
-    (params.puzzleId ? puzzleById(params.puzzleId) : undefined) ?? puzzleForDate(effectiveToday());
+  /**
+   * Resolved across all three banks. The previous version searched only the
+   * daily bank and fell back to "today's daily puzzle" when it missed, which
+   * meant opening this from a level spent a coin on the wrong puzzle and
+   * showed the wrong hint — see `lib/content.ts`.
+   *
+   * The fallback survives only for the scaffolding link row, which opens the
+   * sheet with no param at all.
+   */
+  const puzzle = params.puzzleId
+    ? findPuzzleById(params.puzzleId)
+    : puzzleForDate(effectiveToday());
 
   const [coins, setCoins] = useState(getCoins);
   const [tier, setTier] = useState<0 | 1 | 2 | 3>(() => (puzzle ? getNudgeTier(puzzle.id) : 0));
@@ -203,7 +214,7 @@ export default function NudgePicker() {
   return (
     <Sheet lift onDismiss={() => router.back()}>
       <View className="flex-row items-center gap-3">
-        <Text className="flex-1 font-wh-bold text-wh-h3 text-wh-clue-text">Need a nudge?</Text>
+        <Text className="flex-1 font-wh-bold text-wh-h3 text-wh-clue-text">Need a hint?</Text>
 
         <View className="flex-row items-center gap-2 rounded-wh-pill bg-wh-surface-inset py-2 pl-[10px] pr-[14px] dark:bg-wh-answer-tile-active">
           <Chunky
@@ -221,11 +232,11 @@ export default function NudgePicker() {
       {tier >= 1 && puzzle ? (
         <View className="rounded-[18px] bg-wh-surface-inset px-[14px] py-3 dark:bg-wh-answer-tile-active">
           <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-accent-text">
-            The category
+            Your hint
           </Text>
           <Text className="pt-1 font-wh-bold text-[15.5px] text-wh-clue-text">
             {categoryLabel(puzzle)}
-            {tier >= 2 ? ` · starts with ${puzzle.answer.charAt(0).toUpperCase()}` : ''}
+            {tier >= 2 ? `, and the answer begins with ${puzzle.answer.charAt(0).toUpperCase()}` : ''}
           </Text>
         </View>
       ) : null}
@@ -239,7 +250,7 @@ export default function NudgePicker() {
       {/* The sentence that makes the dimmed rung read as a queue rather than
           as a paywall. It is doing more work than its size suggests. */}
       <Text className={`font-wh-regular text-[13.5px] leading-[19px] ${QUIET_TEXT}`}>
-        They open in order, up to three per puzzle.
+        Hints open in order, up to three per puzzle.
       </Text>
     </Sheet>
   );

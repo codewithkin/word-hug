@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
+import { CoinPill } from '@/components/coin-pill';
 import { Appear, Breathe, Land, STAGGER } from '@/components/motion';
 import { GuessNote } from '@/components/notice';
 import { PuzzleGround } from '@/components/puzzle-ground';
@@ -86,7 +87,6 @@ const LINK_GROUPS: { label: string; links: [string, Href][] }[] = [
     links: [
       ['Probe', '/token-probe'],
       ['Onboarding', '/onboarding/welcome'],
-      ['Archive', '/archive-puzzle'],
       ['Pack', '/pack-puzzle'],
       ['Settings', '/settings'],
       ['How', '/how-to-play'],
@@ -101,7 +101,6 @@ const LINK_GROUPS: { label: string; links: [string, Href][] }[] = [
       ['Solve', '/celebration'],
       ['Nudge', '/nudge-picker'],
       ['Coins', '/zero-coin'],
-      ['Locked', '/archive-locked'],
       ['Offline', '/offline-notice'],
     ],
   },
@@ -112,7 +111,6 @@ const LINK_GROUPS: { label: string; links: [string, Href][] }[] = [
       ['Wrong', '/wrong-guess'],
       ['Near', '/near-miss'],
       ['Caught', '/caught-up'],
-      ['Day one', '/archive-day-one'],
       ['No packs', '/nothing-owned'],
       ['No store', '/store-unreachable'],
       ['No stats', '/stats-empty'],
@@ -218,36 +216,25 @@ export default function DailyPuzzle() {
           rise={-6}
           className="h-[60px] flex-row items-center justify-between px-[18px] pt-[6px]"
         >
+          {/* Back, not a menu. Session 8: the daily puzzle is reached from
+              the level map now, so the top-left affordance has somewhere
+              obvious to go and the owner asked for it. Settings moved to the
+              map's own header. */}
           <ChunkyPressable
             offset={3}
             shadowVar="--color-wh-surface-shadow"
-            onPress={() => router.push('/settings')}
+            onPress={() => router.replace('/home')}
             accessibilityRole="button"
-            accessibilityLabel="Menu"
+            accessibilityLabel="Back to the levels"
             className="h-[46px] w-[46px] items-center justify-center rounded-wh-card bg-wh-surface"
           >
-            {/* The light theme outlines this in textFaint and the dark theme in
-                textSecondary — a real difference in the designs, not an
-                oversight. Same story on the backspace key below. */}
-            <View className="h-5 w-5 rounded-[6px] border-[3px] border-wh-text-faint dark:border-wh-text-secondary" />
+            <Text className="pb-1 font-wh-bold text-wh-h2 leading-none text-wh-text-faint dark:text-wh-text-secondary">
+              ‹
+            </Text>
           </ChunkyPressable>
 
           <View className="flex-row items-center gap-[9px]">
-            <Chunky
-              offset={3}
-              shadowVar="--color-wh-surface-shadow"
-              className="h-[42px] flex-row items-center gap-2 rounded-wh-pill bg-wh-surface pl-[10px] pr-[14px]"
-            >
-              <Chunky
-                offset={-3}
-                inset
-                shadowVar="--color-wh-coin-dot-shadow"
-                className="h-6 w-6 items-center justify-center rounded-wh-pill bg-wh-primary"
-              >
-                <Text className="font-wh-bold text-wh-sm text-wh-coin-glyph">$</Text>
-              </Chunky>
-              <Text className="font-wh-heavy text-wh-md text-wh-text-primary">{coins}</Text>
-            </Chunky>
+            <CoinPill coins={coins} />
 
             {/* Hidden at zero. "0 day streak" on someone's first morning is a
                 scolding, and there is nothing here to scold. */}
@@ -283,7 +270,7 @@ export default function DailyPuzzle() {
             rows={solvedRows(puzzle.answer.toUpperCase(), compounds)}
             answer={puzzle.answer.toUpperCase()}
             streak={streak}
-            onArchive={() => router.push('/archive-puzzle')}
+            onArchive={() => router.replace('/home')}
           />
         ) : (
           <>
@@ -432,7 +419,9 @@ export default function DailyPuzzle() {
               <ChunkyPressable
                 offset={4}
                 shadowVar="--color-wh-surface-shadow"
-                onPress={() => router.push('/nudge-picker')}
+                onPress={() =>
+                  router.push({ pathname: '/nudge-picker', params: { puzzleId: puzzle.id } })
+                }
                 accessibilityRole="button"
                 accessibilityLabel="Hint"
                 className="h-[58px] w-[58px] items-center justify-center rounded-[19px] bg-wh-surface"
@@ -509,7 +498,7 @@ export default function DailyPuzzle() {
           onClose={closeCelebration}
           onArchive={() => {
             closeCelebration();
-            router.push('/archive-puzzle');
+            router.push('/home');
           }}
         />
       ) : null}
