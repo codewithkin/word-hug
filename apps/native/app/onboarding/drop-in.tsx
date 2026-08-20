@@ -1,10 +1,9 @@
-import { router } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/actions';
 import { Appear } from '@/components/motion';
-import { LetterTile, ONBOARDING_EXIT, OnboardingHeader, StepCopy } from '@/components/onboarding-chrome';
+import { LetterTile, OnboardingHeader, StepCopy, finishOnboarding } from '@/components/onboarding-chrome';
 import { PuzzleGround } from '@/components/puzzle-ground';
 
 /**
@@ -73,13 +72,14 @@ export default function DropIn() {
         </View>
 
         <Appear delay={560} rise={12} className="px-6 pb-[10px]">
-          {/* `replace`, not `push`: once the flow is over there is nothing
+          {/* `finishOnboarding` writes the first-launch flag and then
+              `replace`s, not `push`es: once the flow is over there is nothing
               behind it worth going back to, and a back gesture from the Daily
               screen should leave the app, not re-enter onboarding. */}
           <PrimaryButton
             label="START"
             accessibilityLabel="Start playing"
-            onPress={() => router.replace(ONBOARDING_EXIT)}
+            onPress={finishOnboarding}
           />
         </Appear>
       </View>

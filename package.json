@@ -12,6 +12,12 @@
     "check-types": "turbo run check-types",
     "dev:native": "turbo run dev -F native",
     "dev:web": "turbo run dev -F web",
+    "check:loop": "node scripts/daily-loop-check.mjs",
+    "levels:build": "node scripts/build-levels.mjs",
+    "levels:check": "node scripts/build-levels.mjs --check && node scripts/level-check.mjs",
+    "check:nav": "node scripts/nav-check.mjs",
+    "check:imports": "node scripts/imports-check.mjs",
+    "check": "node scripts/imports-check.mjs && node scripts/daily-loop-check.mjs && node scripts/build-levels.mjs --check && node scripts/level-check.mjs && node scripts/nav-check.mjs",
     "tokens:css": "node packages/tokens/scripts/emit-theme-css.mjs",
     "tokens:test": "node packages/tokens/test/design-parity.mjs && node packages/tokens/test/design-parity.mjs --tamper && node packages/tokens/scripts/emit-theme-css.mjs --check && node packages/tokens/scripts/emit-theme-css.mjs --tamper"
   },

@@ -3,7 +3,7 @@
 **The one place that answers "which screens are done".** Nothing else in `progress/`
 tries to answer this. If this file and a changelog entry disagree, this file is right.
 
-**Last updated: end of session 4.**
+**Last updated: end of session 7.**
 
 The spec is 18 screens + 8 overlays (`plans/03-screens.md` §2), plus the alternate
 states of screens that already exist.
@@ -13,11 +13,12 @@ states of screens that already exist.
 | Group | Done | Total |
 |---|---|---|
 | **System screens** | **3** | **3** |
+| **Home / levels** (session 7) | **2** | **2** |
 | **Onboarding** | **5** | **5** |
-| **Main app** | **6** | **10** |
-| **Overlays** | **5** | **8** |
+| **Main app** | **10** | **10** |
+| **Overlays** | **8** | **8** |
 | **Alternate states** | **9** | **9** |
-| **Total** | **28** | **35** |
+| **Total** | **37** | **37** |
 
 **Done** means code-complete and unverified — written from the design file in both
 themes. **Not one screen has been seen running.** Nothing is "verified" yet, and
@@ -26,6 +27,14 @@ nothing can be until the owner runs the build.
 Session 4 added four overlays (B, C, E, F), all nine alternate states, and the
 splash artwork, and TypeScript-checked every one of them. The four screens still
 missing are 10, 12, 13 and 15 — the archive index and the paid surface.
+
+**Session 6 built no new screens.** It made the existing ones work: screen 09 is now
+live and three of the alternate states became phases of it rather than routes. The
+count above is unchanged because "done" here means the screen exists, and it did.
+
+The owner has now run the build once, so a distinction that did not previously
+matter starts to: **09 has been *seen*, and nothing else has.** Everything below is
+still unverified in the sense this file has always meant.
 
 ---
 

@@ -8,7 +8,7 @@ This file is self-contained. Read it fully before touching anything.
 > **`progress/03-screen-status.md` is which screens exist.** Check it before
 > promising anything about a screen — it is the only file that tracks that.
 
-**Last updated: end of session 5.**
+**Last updated: end of session 7.**
 
 ## Where the project actually is, in one table
 
@@ -32,70 +32,66 @@ already have their empty/failure state built.
 
 ---
 
-## The one thing to do before anything else
+## Where session 7 left it
 
-**The owner has an unverified build sitting in front of them, and it is now
-twenty-eight screens deep.** Nothing in this project has ever been seen on a device.
+**The product changed shape.** It was a daily puzzle with an archive; it is now
+a run of 100 levels with the daily puzzle alongside. The owner made that call
+mid-session, and made two others that reverse rules every other file in this
+repo defends. Read `progress/05-known-issues.md` §13 before anything else — it
+is short and one item on it is a promise the app now breaks in onboarding.
 
-So: if the owner has run it and reported anything, **that is the entire priority.**
-It outranks every item further down this file. Bug reports are the only real signal
-about appearance this project ever gets, and they arrive rarely.
+### The three decisions that outrank the documents
 
-**Session 5 found the build itself was broken and fixed it.** If you are reading this
-because the owner tried session 4's instructions and hit a wall, that is why —
-`expo prebuild` crashed on `app.json`, and separately, EAS was going to ignore the
-whole of `app.json` anyway. Both fixed. `02-dependencies.md` §7 has the full account;
-the two-line version is that a config key Android and iOS both read only accepts an
-object on one of them, and that `apps/native/android/` was committed to git when it
-should never have been.
+1. **Levels, not days.** `/` redirects to `app/home.tsx`, the level map. The
+   daily puzzle lives at `/daily` and is a card at the top of the map. Streak
+   is kept alive by **either** a level solve or the daily.
+2. **Hearts.** A wrong guess on a level costs one. `HEARTS_ENABLED` in
+   `lib/lives.ts` is the switch, and that file argues both sides.
+3. **A wrong guess is red, shakes and buzzes.** `WRONG_GUESS_FEEDBACK` in
+   `lib/feedback.ts`.
 
-If they have not run it yet, the thing to hand them is:
+2 and 3 contradict rule 1 below. **Rule 1 as written is no longer the product.**
+Do not "fix" the red or the shake back out; do raise it if the onboarding copy
+still says "no way to lose" when you read this.
+
+### What to hand the owner
 
 ```
-pnpm install                      # REQUIRED — session 5 added expo-asset
-
+pnpm check                    # 233 loop checks + level bank analysis
 cd apps/native
-npx expo prebuild --clean         # must succeed; it did not before session 5
-npx expo run:android              # or: eas build --profile development --platform all
+npx expo run:android          # or: eas build --profile development --platform android
 ```
 
-**Run `prebuild --clean` itself — do not substitute `expo config --type prebuild`.**
-That was session 4's recommended smoke test and it *passes* on a config that makes
-prebuild crash. It only evaluates the plugin chain; the image and manifest writers,
-which is where the crash was, run only under prebuild.
+**No `pnpm install` needed.** Session 7 added no dependencies. The splash
+artwork changed, so a JS-only reload will not show it — that needs a build.
 
-**Never commit `apps/native/android/` or `ios/`.** This project is CNG: `app.json` is
-the source of truth and the native folders are build output. When they are committed,
-EAS Build silently stops syncing `plugins`, `icon`, `scheme`, `orientation`,
-`userInterfaceStyle`, `ios` and `android` — and builds successfully, with the wrong app.
+### What to ask them to check
 
-**The owner is on Windows.** `npx expo run:ios` cannot work there. iOS goes
-through EAS Build, which is why `apps/native/eas.json` exists with a
-`development` profile.
+1. **The map.** Level 1 amber, everything else locked, and it scrolls to where
+   they are.
+2. **Level 1 → 2 → 3.** The solve pushes straight to the next one.
+3. **A wrong guess** — red pill, shake, buzz, and one heart gone.
+4. **Hearts at zero.** Guessing stops, the refill button appears, and 2 coins
+   restores all five.
+5. **The daily card** is never gated by hearts.
+6. **Onboarding, every control.** Step 2's letters and Nudge, step 3's weekday,
+   step 4's "Other", every Skip.
+7. **The splash** — the wordmark should no longer be clipped.
 
-**iOS has never been prebuilt.** Session 5 verified Android end to end; there is no
-`ios/` folder and no Mac in reach, so the first `eas build -p ios` is still the first
-time that config meets Xcode. `ios.icon` is the part to watch — it is the key that was
-moved.
+### The scripts
 
-Then, in the app, walk the temporary link row at the bottom of the Daily screen.
-It is now **three labelled groups** — Screens / Overlays / States, 22 entries — and
-all of it must be walked in **both themes**. Every row on the probe must say OK.
-The link row is scaffolding and comes out the moment it has done its job.
+```
+pnpm check           # everything
+pnpm levels:build    # regenerate content/levels.ts from scripts/levels.source.mjs
+pnpm levels:check    # staleness + playability + curve + give-aways
+node scripts/level-check.mjs --verbose   # every level with its keys
+```
 
-**`progress/05-known-issues.md` lists everything that is expected to be wrong**,
-ranked, with where each fix goes. Read it before debugging anything — most of it
-fails in a way that looks like something else. The two that still lead:
+**Never edit `apps/native/content/levels.ts`.** It is generated. Edit
+`scripts/levels.source.mjs` and rebuild.
 
-1. **`className` on a Reanimated `Animated.View`.** If uniwind does not style
-   components it does not own, every raised surface loses its colour at once.
-   Two-line fix in `chunky.tsx` / `motion.tsx`.
-2. **`letterSpacing` in `em`** — React Native measures it in points. Every
-   uppercase eyebrow in the app would lose its tracking and read as a font bug.
-
-The old #2 (`ch` units) and #5 (the Babel plugin) were both resolved in session 4.
-Session 5 added §10, the daily nudge — what to check on device now that it does
-something, and the two judgement calls made without the owner.
+**The owner is on Windows.** iOS goes through EAS Build.
+**Never commit `apps/native/android/` or `ios/`.**
 
 ---
 
@@ -184,10 +180,13 @@ Divergences from a design are allowed but never silent: they go in the plan file
 | **Android prebuild** | ✅ **Verified session 5.** Generates cleanly; manifest, splash, notification icon and `updates.ENABLED=true` all confirmed in the output. |
 | **iOS prebuild** | ⚠️ **Never run.** No Mac in reach. First `eas build -p ios` is the first real test. |
 | **Daily notification** | ✅ **Works as of session 5** — `lib/notifications.ts`. Channel, permission, real DAILY schedule. Unverified on device. |
-| Screens | ✅ 28 of 35 — all **code-complete, unverified** |
-| Puzzle bank | ❌ Zero puzzles written |
-| Game logic | ❌ None. Every screen is static; content is hard-coded. |
-| Storage | ❌ `react-native-mmkv` installed, unused. No first-launch flag, no solves, no streak. **Now the one thing blocking the notification time from being remembered.** |
+| Screens | ✅ 28 of 35, plus **home (level map)** and **level/[n]** from session 7 |
+| Levels | ✅ **100**, generated. Ramp 1.0 → 5.0. **Unvalidated content.** |
+| Hearts | ✅ Session 7. `lib/lives.ts`. Reverses rule 1 — read the file. |
+| Puzzle bank | ⚠️ **42 puzzles, six weeks** (`apps/native/content/daily.ts`). **None validated** — `scripts/puzzle-check.mjs` has not been run on one of them. |
+| Game logic | ✅ **Session 6.** Input, grading, solve, streak, celebration. `hooks/use-daily-puzzle.ts`. |
+| Storage | ✅ **Session 6.** `lib/storage/` — two MMKV instances, zod-validated, clock-tamper guard. |
+| Loop tests | ✅ **229 checks**, `pnpm check:loop`. Static, not behavioural — see the script's header. |
 
 ---
 
@@ -288,29 +287,26 @@ workaround for a limit that turned out not to be universal — check first.
 ## Your task, in order
 
 1. **Whatever the owner reported.** See the top of this file. Always first.
-2. **If the probe is all-OK in both themes:** delete `app/token-probe.tsx` and the
-   temporary link row at the bottom of the Daily screen.
-3. **The storage layer.** `react-native-mmkv` is installed and unused. It unlocks the
-   first-launch flag that gates onboarding, solves and the streak — and it is now the
-   *only* thing between onboarding step 4 and being finished. As of session 5 the
-   reminder is really scheduled with the OS, so it survives without us; what is still
-   missing is that nothing remembers **which** time was chosen, so Settings cannot show
-   it or change it. `lib/notifications.ts` already exposes `scheduleDailyNudge` and
-   `cancelDailyNudge` for that screen to call.
-4. **Real game state** — input, the guess, the gentle nudge. **All nine alternate
-   states now exist to build against**, which is the point of having done them first:
-   `/wrong-guess` and `/near-miss` are the two branches the guess handler produces,
-   and `/solved-today` and `/caught-up` are the two the day handler produces. Fold
-   them into their parent screens and delete the routes.
-5. **Fold the Daily board into `components/puzzle-board.tsx`** — but only once 11 and
-   14 have been seen running.
-6. **Generate the puzzle bank.** The validator is proven; the bank is empty.
+2. **Validate the bank.** `scripts/puzzle-check.mjs` against all 42 puzzles in
+   `apps/native/content/daily.ts`, and replace every placeholder `difficulty` with
+   the derived one. This is the highest-value non-reported work available: a puzzle
+   with a second valid answer is indistinguishable, to a player, from a broken game.
+3. **If the probe is all-OK in both themes:** delete `app/token-probe.tsx`, the
+   `ScaffoldingLinks` component in `app/index.tsx`, and the eight alternate-state
+   routes with their registrations in `app/_layout.tsx`.
+4. **Nudges.** `/nudge-picker` opens and does nothing. `spendCoins`, `setNudgeTier`
+   and `getNudgeTier` are written and unused; overlay C (`/zero-coin`) is the branch
+   for an empty balance. The hint button on Daily currently shows the coin balance as
+   its badge, which is a stand-in.
+5. **The archive.** `/archive-puzzle` is static. `puzzleForDate` already maps any date
+   to its puzzle, which is the whole of what the archive needs; `archive-locked` is
+   the past-seven-days branch.
+6. **Fold the Daily board into `components/puzzle-board.tsx`** — but only once 11 and
+   14 have been seen running. Session 6 deliberately did not: it wired Daily's own
+   bespoke layout rather than generalising from two screens and a guess.
 7. **Screens 10, 12, 13, 15 and overlays D, G, H** — the archive index and the paid
-   surface, with RevenueCat. The empty states are already built, so what is left is
-   the populated versions. **Every price in the app is currently hard-coded and must
-   come from RevenueCat** — see `04-changelog.md` §7.
-
----
+   surface, with RevenueCat. **Every price in the app is currently hard-coded and
+   must come from RevenueCat** — see `04-changelog.md` §7.
 
 ## What Word Hug is, in five rules
 

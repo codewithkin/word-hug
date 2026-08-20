@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { DailyAltHeader, DailyEyebrow } from '@/components/daily-chrome';
-import { Appear, Land, STAGGER } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
+import { SolvedBoard } from '@/components/solved-board';
 
 /**
  * ── 09 Daily · Solved today ───────────────────────────────────────────────
@@ -37,9 +36,12 @@ import { PuzzleGround } from '@/components/puzzle-ground';
  * over the board once and is dismissed. This is the *state* afterwards, which
  * persists all day. They draw the same content and are not the same screen.
  *
- * STATE: none. HOUSE against the design's own three clues, hard-coded. When
- * storage lands this becomes the Daily screen's solved branch rather than a
- * route (plans/05 §6.1).
+ * ── STATE (session 6) ─────────────────────────────────────────────────────
+ * The body of this screen is `components/solved-board.tsx` now, and the Daily
+ * screen renders the same component for its `done` phase — which is how anyone
+ * will actually meet it. This route survives only so the state can still be
+ * opened from the scaffolding link row, and it keeps the design's own
+ * placeholder solve so it looks the same as it did when it was walked.
  * ──────────────────────────────────────────────────────────────────────────
  */
 
@@ -49,15 +51,6 @@ const SOLVED = [
   { before: '', hug: 'HOUSE', after: 'BOAT' },
   { before: 'LIGHT', hug: 'HOUSE', after: '' },
 ];
-
-const ANSWER = 'HOUSE';
-
-const IN = {
-  eyebrow: 60,
-  rows: 120,
-  answer: 120 + 3 * STAGGER + 60,
-  footer: 120 + 3 * STAGGER + 180,
-};
 
 export default function SolvedToday() {
   const insets = useSafeAreaInsets();
@@ -70,87 +63,12 @@ export default function SolvedToday() {
         <DailyAltHeader onMenu={() => router.back()} />
         <DailyEyebrow>Monday 10 August</DailyEyebrow>
 
-        {/* ── The three completed compounds ───────────────────────────── */}
-        <View className="flex-1 justify-center gap-[10px] px-[22px] pt-[6px]">
-          {SOLVED.map((row, i) => (
-            <Appear key={`${row.before}${row.after}`} index={i} delay={IN.rows}>
-              <Chunky
-                offset={4}
-                shadowVar="--color-wh-clue-card-shadow"
-                className="h-[62px] flex-row items-center justify-center gap-[2px] rounded-wh-lg bg-wh-clue-card"
-              >
-                {row.before ? (
-                  <Text className="font-wh-bold text-wh-h1 text-wh-clue-text">{row.before}</Text>
-                ) : null}
-                {/* `accentText`, not `accent`: in dark, #17A398 on the clue
-                    card is too dark to read and the design brightens it to
-                    #2ED3C0. Light uses the same value for both. */}
-                <Text className="font-wh-bold text-wh-h1 text-wh-accent-text">{row.hug}</Text>
-                {row.after ? (
-                  <Text className="font-wh-bold text-wh-h1 text-wh-clue-text">{row.after}</Text>
-                ) : null}
-              </Chunky>
-            </Appear>
-          ))}
-        </View>
-
-        {/* ── The answer ──────────────────────────────────────────────── */}
-        <View className="items-center gap-[10px] px-[22px] pt-[6px]">
-          <Appear delay={IN.answer}>
-            <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
-              Today&apos;s hug word
-            </Text>
-          </Appear>
-
-          {/* `Land` rather than `Appear`: this is the one thing on the screen
-              that is unambiguously good news, and the only entrance in the app
-              allowed to overshoot. */}
-          <Land delay={IN.answer + 90}>
-            <Chunky
-              offset={5}
-              shadowVar="--color-wh-accent-shadow"
-              className="rounded-wh-lg bg-wh-accent px-[30px] py-[14px]"
-            >
-              <Text className="font-wh-bold text-wh-display-lg text-wh-on-accent">{ANSWER}</Text>
-            </Chunky>
-          </Land>
-        </View>
-
-        {/* The design leaves a 62px band of air here — the space the keyboard
-            occupies on the unsolved board. Kept, so the footer does not jump
-            when the screen changes state. */}
-        <View className="h-[62px]" />
-
-        <Appear
-          delay={IN.footer}
-          rise={12}
-          className="flex-row items-center gap-[10px] px-[22px] pb-[6px]"
-        >
-          <ChunkyPressable
-            offset={5}
-            shadowVar="--color-wh-primary-shadow"
-            onPress={() => router.push('/archive-puzzle')}
-            accessibilityRole="button"
-            accessibilityLabel="Play the archive"
-            className="h-[58px] flex-1 items-center justify-center rounded-[19px] bg-wh-primary"
-          >
-            <Text className="font-wh-bold text-wh-xl tracking-[0.05em] text-wh-on-primary">
-              PLAY THE ARCHIVE
-            </Text>
-          </ChunkyPressable>
-
-          {/* A fact, not a call to action. No flame, no "keep it going". */}
-          <Chunky
-            offset={4}
-            shadowVar="--color-wh-surface-shadow"
-            className="h-[58px] flex-row items-center gap-2 rounded-[19px] bg-wh-surface px-4"
-          >
-            <View className="h-[9px] w-[9px] rounded-wh-pill bg-wh-highlight" />
-            <Text className="font-wh-heavy text-wh-base text-wh-text-quiet dark:text-wh-pill-text">
-              13
-            </Text>
-          </Chunky>
-        </Appear>
+        <SolvedBoard
+          rows={SOLVED}
+          answer="HOUSE"
+          streak={13}
+          onArchive={() => router.push('/archive-puzzle')}
+        />
       </View>
     </View>
   );

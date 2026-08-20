@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, View, type PressableProps, type ViewProps } from 'react-native';
+import {
+  Pressable,
+  View,
+  type PressableProps,
+  type StyleProp,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 
@@ -59,6 +66,29 @@ export interface ChunkyPressableProps extends Omit<PressableProps, 'style' | 'ch
   children?: ReactNode;
   /** Offset while held. The designs compress to 2px; see `elevation.pressed`. */
   pressedOffset?: number;
+  /**
+   * Inset shadows read as "sunken" — the same prop `Chunky` has.
+   *
+   * Added session 7b. It was missing, and three screens tried to pass it
+   * anyway: a sunken surface that is *also* pressable is a real shape in the
+   * app (the archive's window edge, the pack list's bundle row, the shop's
+   * new-player line). Without it those three had to choose between the wrong
+   * elevation and a non-pressable `Chunky`, and all three chose to pass a prop
+   * that did not exist.
+   *
+   * A pressed inset surface compresses the same way a raised one does — it
+   * just starts below the surface rather than above it.
+   */
+  inset?: boolean;
+  /**
+   * Forwarded to the inner `Animated.View`, alongside the press transform.
+   *
+   * `PressableProps['style']` is omitted above because Pressable's own style
+   * prop can be a function of the press state and this component owns that
+   * behaviour. This is a plain style for the surface, which is what a caller
+   * needing a fixed width actually wants — `KeyCap` passes one.
+   */
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -90,8 +120,10 @@ export function ChunkyPressable({
   offset,
   shadowVar,
   pressedOffset = 2,
+  inset = false,
   className,
   children,
+  style,
   ...props
 }: ChunkyPressableProps) {
   const color = useCSSVariable(shadowVar);
@@ -115,7 +147,11 @@ export function ChunkyPressable({
     >
       <Animated.View
         className={className}
-        style={[give, { boxShadow: shadow(pressed ? pressedOffset : offset, false, color) }]}
+        style={[
+          give,
+          { boxShadow: shadow(pressed ? pressedOffset : offset, inset, color) },
+          style,
+        ]}
       >
         {children}
       </Animated.View>

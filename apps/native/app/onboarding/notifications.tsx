@@ -9,6 +9,7 @@ import { Appear } from '@/components/motion';
 import { OnboardingHeader, SkipButton, StepCopy } from '@/components/onboarding-chrome';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { parseTime, requestNotificationPermission, scheduleDailyNudge } from '@/lib/notifications';
+import { getReminder, setReminder } from '@/lib/storage';
 
 /**
  * ── 07 Notification Priming · onboarding step 4 of 5 ──────────────────────
@@ -49,9 +50,25 @@ import { parseTime, requestNotificationPermission, scheduleDailyNudge } from '@/
 
 const TIMES = ['7:00', '9:00', '18:00'];
 
+/** What "Other" cycles through. Deliberately short — this is not a clock. */
+const OTHER_TIMES = ['6:00', '8:00', '10:00', '12:00', '20:00', '21:00'];
+
 export default function NotificationPriming() {
   const insets = useSafeAreaInsets();
-  const [selected, setSelected] = useState('9:00');
+  // Seeded from storage so re-entering the step shows what was chosen last
+  // time rather than snapping back to the default.
+  const [selected, setSelected] = useState(() => {
+    const { time } = getReminder();
+    return (
+      [...TIMES, ...OTHER_TIMES].find((t) => t.padStart(5, '0') === time) ?? '9:00'
+    );
+  });
+
+  /** Steps to the next "other" time, entering the list at its start. */
+  function cycleOther() {
+    const at = OTHER_TIMES.indexOf(selected);
+    setSelected(OTHER_TIMES[(at + 1) % OTHER_TIMES.length] ?? OTHER_TIMES[0] ?? '8:00');
+  }
 
   async function allow() {
     // Every call below is defensive by construction (see `lib/notifications`):
@@ -59,11 +76,17 @@ export default function NotificationPriming() {
     // daily nudge is a nicety and the game works without it. Nothing here is
     // allowed to be the reason someone cannot get past onboarding.
     const outcome = await requestNotificationPermission();
+    const granted = outcome === 'granted';
 
-    if (outcome === 'granted') {
+    if (granted) {
       const at = parseTime(selected);
       if (at) await scheduleDailyNudge(at.hour, at.minute);
     }
+
+    // Remembered either way. The OS owns the schedule; storage owns what the
+    // person chose, so Settings can show "09:00" and offer to turn it on
+    // rather than showing nothing and looking like it forgot.
+    setReminder(granted, selected);
 
     router.push('/onboarding/drop-in');
   }
@@ -148,15 +171,49 @@ export default function NotificationPriming() {
               )
             )}
 
+            {/* ── "Other" ──────────────────────────────────────────────
+                The owner reported this doing nothing, which it did — the
+                design's comment even said so ("Other has nowhere to go until
+                there is a time picker").
+
+                It cycles through the remaining sensible hours rather than
+                opening a platform picker. `@react-native-community/datetimepicker`
+                is not installed, and adding a native module to make one
+                onboarding control work would mean a new dev build for the
+                owner mid-session. Tapping steps 06:00 → 08:00 → 10:00 → 12:00
+                → 20:00 → 21:00 and wraps, which covers the times a person
+                actually asks for and needs no dependency.
+
+                If a real clock face is wanted later, this is the one call
+                site to change. */}
             <ChunkyPressable
               offset={4}
-              shadowVar="--color-wh-surface-shadow"
+              shadowVar={
+                OTHER_TIMES.includes(selected)
+                  ? '--color-wh-primary-shadow'
+                  : '--color-wh-surface-shadow'
+              }
+              onPress={cycleOther}
               accessibilityRole="button"
-              accessibilityLabel="Choose another time"
-              className="justify-center rounded-wh-card bg-wh-surface px-[18px] py-[14px]"
+              accessibilityLabel={
+                OTHER_TIMES.includes(selected)
+                  ? `Reminder at ${selected}. Tap for another time.`
+                  : 'Choose another time'
+              }
+              className={
+                OTHER_TIMES.includes(selected)
+                  ? 'justify-center rounded-wh-card bg-wh-primary px-[18px] py-[14px]'
+                  : 'justify-center rounded-wh-card bg-wh-surface px-[18px] py-[14px]'
+              }
             >
-              <Text className="font-wh-heavy text-wh-base text-[#8C7A66] dark:text-[#B6A4E4]">
-                Other
+              <Text
+                className={
+                  OTHER_TIMES.includes(selected)
+                    ? 'font-wh-bold text-[19px] text-wh-on-primary'
+                    : 'font-wh-heavy text-wh-base text-[#8C7A66] dark:text-[#B6A4E4]'
+                }
+              >
+                {OTHER_TIMES.includes(selected) ? selected : 'Other'}
               </Text>
             </ChunkyPressable>
           </Appear>

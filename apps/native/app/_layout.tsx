@@ -12,7 +12,19 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorView } from '@/components/error-view';
 import { AppThemeProvider } from '@/contexts/app-theme-context';
 import { initNotifications } from '@/lib/notifications';
+import { initStorage } from '@/lib/storage';
 import { FONT_MAP } from '@/theme/fonts';
+
+/**
+ * Storage is seeded at module scope, before any screen body runs, because
+ * `app/index.tsx` reads the onboarding flag during its first render to decide
+ * whether to redirect. An effect would be a frame too late and the Daily
+ * screen would flash behind onboarding on a fresh install.
+ *
+ * `initStorage` is idempotent and cannot throw — it falls back to an in-memory
+ * store if the native module is missing. See `lib/storage/index.ts`.
+ */
+initStorage();
 
 /**
  * The importing of `global.css` on line 1 is what loads the entire styling
@@ -103,6 +115,12 @@ export default function RootLayout() {
             <HeroUINativeProvider>
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
+                {/* ── Session 7: the level architecture ─────────────────
+                    `/` is a redirect, `/home` is the map and the app's real
+                    front door, and the daily puzzle is one card on it. */}
+                <Stack.Screen name="home" options={{ animation: 'fade' }} />
+                <Stack.Screen name="level/[n]" />
+                <Stack.Screen name="daily" />
                 {/* Onboarding fades between its own steps; entering and
                     leaving the flow as a whole is a fade too, so the amber
                     button never appears to slide in from the side. */}
@@ -121,11 +139,25 @@ export default function RootLayout() {
                 <Stack.Screen name="zero-coin" options={OVERLAY} />
                 {/* E — reached from the Archive, past the seventh day back. */}
                 <Stack.Screen name="archive-locked" options={OVERLAY} />
-                {/* F — a banner in the product; a route only so it can be
-                    looked at before the Shop exists. See the file. */}
+                {/* F — a banner in the product; the Shop mounts it directly.
+                    The route exists only so it can be looked at. */}
                 <Stack.Screen name="offline-notice" options={OVERLAY} />
+                {/* D — the welcome offer. Nothing triggers it yet; see the
+                    file for what it must never grow. */}
+                <Stack.Screen name="welcome-offer" options={OVERLAY} />
+                {/* G — what Restore says. Both outcomes, one sheet. */}
+                <Stack.Screen name="restore-result" options={OVERLAY} />
+                {/* H — the end of the levels. NOT `/caught-up`, which is the
+                    09 alternate state for the day's puzzle being done. */}
+                <Stack.Screen name="all-caught-up" options={OVERLAY} />
 
                 {/* ── Screens ──────────────────────────────────────────── */}
+                {/* Session 7 — the four that were missing since session 3. */}
+                <Stack.Screen name="archive" />
+                <Stack.Screen name="packs" />
+                <Stack.Screen name="pack/[id]" />
+                <Stack.Screen name="shop" />
+
                 <Stack.Screen name="archive-puzzle" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="how-to-play" />

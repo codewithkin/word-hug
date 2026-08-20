@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { palettes, type ThemeName } from '@word-hug/tokens';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,7 +78,26 @@ export default function TokenProbe() {
         contentInsetAdjustmentBehavior="automatic"
       >
         <Appear className="px-5 gap-3">
-          <Text className="font-wh-bold text-wh-h2 text-wh-text-primary">Token probe</Text>
+          {/* Session 7: the probe had no way out. It is registered as a modal,
+              which on iOS gets a swipe-down and on Android gets the hardware
+              back — but a modal whose only exit is a system gesture is a trap
+              on a device without one, and `scripts/nav-check.mjs` counts it as
+              a dead end. One explicit control costs nothing. */}
+          <View className="flex-row items-center justify-between">
+            <Text className="font-wh-bold text-wh-h2 text-wh-text-primary">Token probe</Text>
+            <ChunkyPressable
+              offset={3}
+              shadowVar="--color-wh-surface-shadow"
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Close the probe"
+              className="h-[42px] w-[42px] items-center justify-center rounded-wh-card bg-wh-surface"
+            >
+              <Text className="font-wh-bold text-wh-xl text-wh-text-faint dark:text-wh-text-secondary">
+                ×
+              </Text>
+            </ChunkyPressable>
+          </View>
 
           {/* The verdict re-animates whenever the theme flips, which makes the
               switch feel like a re-test rather than a repaint. */}

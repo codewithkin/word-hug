@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,6 +8,7 @@ import { Chunky } from '@/components/chunky';
 import { Appear } from '@/components/motion';
 import { OnboardingHeader, SkipButton, StepCopy } from '@/components/onboarding-chrome';
 import { PuzzleGround } from '@/components/puzzle-ground';
+import { localDate, weekdayName } from '@/lib/dates';
 
 /**
  * ── 06 The Ritual · onboarding step 3 of 5 ────────────────────────────────
@@ -23,24 +25,43 @@ import { PuzzleGround } from '@/components/puzzle-ground';
  * a "don't lose your streak!" line anywhere near this screen: that is rule 1,
  * and this screen is where it is stated out loud.
  *
- * STATE: none. The week is the design's Thursday, hard-coded. Wiring it to a
- * real calendar and a real solve history belongs with the storage layer.
+ * ── STATE (session 7) ─────────────────────────────────────────────────────
+ * The week is real now. The owner reported it saying "Today is Thursday" at
+ * 16:23 on a Wednesday — it was the design's own Thursday, written into the
+ * file, and it would have said Thursday forever.
+ *
+ * The strip is built from the device's local calendar with the week starting
+ * on Monday. Days before today are drawn as `played` even though nobody has
+ * played them: this is the screen that explains what a week of the app looks
+ * like, on the first day anyone opens it, so an accurate empty strip would
+ * illustrate nothing. The real week lives on the Stats screen.
  * ──────────────────────────────────────────────────────────────────────────
  */
 
-/** M T W T F S S, as the design draws it: three played, today, three ahead. */
-const WEEK = [
-  { key: 'mon', label: 'M', state: 'played' },
-  { key: 'tue', label: 'T', state: 'played' },
-  { key: 'wed', label: 'W', state: 'played' },
-  { key: 'thu', label: 'T', state: 'today' },
-  { key: 'fri', label: 'F', state: 'ahead' },
-  { key: 'sat', label: 'S', state: 'ahead' },
-  { key: 'sun', label: 'S', state: 'ahead' },
-] as const;
+const LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+/**
+ * The week strip, Monday-first, with today in the right slot.
+ *
+ * `getDay()` is Sunday-based, so Sunday has to fold to the end rather than
+ * sitting at the front. Getting this wrong puts "today" one column off, which
+ * is exactly the class of bug that survives a code review and not a glance at
+ * a real phone.
+ */
+function weekStrip(today: Date) {
+  const mondayFirst = (today.getDay() + 6) % 7;
+  return LABELS.map((label, i) => ({
+    key: KEYS[i] ?? String(i),
+    label,
+    state: i < mondayFirst ? 'played' : i === mondayFirst ? 'today' : 'ahead',
+  }));
+}
 
 export default function Ritual() {
   const insets = useSafeAreaInsets();
+  const today = useMemo(() => new Date(), []);
+  const WEEK = useMemo(() => weekStrip(today), [today]);
 
   return (
     <View className="flex-1 bg-wh-ground">
@@ -98,7 +119,9 @@ export default function Ritual() {
               )}
             </View>
 
-            <Text className="font-wh-bold text-wh-sm text-wh-text-whisper">Today is Thursday</Text>
+            <Text className="font-wh-bold text-wh-sm text-wh-text-whisper">
+              Today is {weekdayName(localDate(today))}
+            </Text>
           </Appear>
 
           <StepCopy
@@ -114,16 +137,25 @@ export default function Ritual() {
               shadowVar="--color-wh-clue-card-shadow"
               className="w-full flex-row items-center gap-[14px] rounded-wh-xl bg-wh-clue-card px-5 py-[18px]"
             >
+              {/* The owner reported this reading as "no icon, just a circle",
+                  and it was: a plain coral dot with an inset shadow. The
+                  enamel-badge treatment is kept — it is the only upward inset
+                  shadow in the app — but the dot now carries a mark so it
+                  looks like a thing rather than a placeholder.
+
+                  A spark, not a flame. A flame is the universal streak glyph
+                  and it is exactly the wrong one here: this is the screen that
+                  says "miss a day and nothing is taken from you", and a flame
+                  is a picture of something that goes out. */}
               <View className="h-11 w-11 items-center justify-center rounded-wh-md bg-wh-highlight-wash">
-                {/* The one ornament in the app with an UPWARD inset shadow —
-                    `inset 0 -4px 0` — which is what gives it the pressed
-                    enamel-badge look rather than a flat dot. */}
                 <Chunky
                   offset={-4}
                   inset
                   shadowVar="--color-wh-streak-dot-shadow"
-                  className="h-5 w-5 rounded-wh-pill bg-wh-highlight"
-                />
+                  className="h-7 w-7 items-center justify-center rounded-wh-pill bg-wh-highlight"
+                >
+                  <Text className="font-wh-heavy text-[13px] leading-[15px] text-white">✦</Text>
+                </Chunky>
               </View>
               <Text className="flex-1 font-wh-regular text-[14.5px] leading-[21px] text-wh-chip-text">
                 Play on consecutive days and a small streak count appears. That&apos;s the only

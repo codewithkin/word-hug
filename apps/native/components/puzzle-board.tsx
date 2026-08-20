@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
-import { Appear, Breathe, STAGGER } from '@/components/motion';
+import { Appear, Breathe, Land, STAGGER } from '@/components/motion';
 
 /**
  * The board shared by the Archive Puzzle (11) and the Pack Puzzle (14).
@@ -22,6 +22,13 @@ import { Appear, Breathe, STAGGER } from '@/components/motion';
  * If 11 and 14 look right on device, THAT is the moment to pull Daily in —
  * with three real screens to generalise from instead of two and a guess.
  *
+ * ── Key size (session 7) ──────────────────────────────────────────────────
+ * The owner reported the archive keys reading as too small next to the Daily
+ * board's. They were: Daily draws 56px caps and this drew 54px ones with a
+ * smaller type size, on a row that also carries a fixed-width backspace — so
+ * with six letters each cap came out around 40px wide against Daily's 52. The
+ * caps are now 56px tall with `h2` type, matching the board they sit next to.
+ *
  * ── The submit button ─────────────────────────────────────────────────────
  * When the answer is too short it is flat: `submitIdle`, no shadow, no amber.
  * That is the only control in the app with no elevation, and the absence is
@@ -29,6 +36,139 @@ import { Appear, Breathe, STAGGER } from '@/components/motion';
  * because both of those read as "you did something wrong" (rule 1); this just
  * reads as "not yet".
  */
+
+/**
+ * ── The two primitives every board shares (session 7) ─────────────────────
+ *
+ * The owner reported that the answer keys did not match between screens, and
+ * they did not: the Daily screen drew its own 56px caps with `h2` type, this
+ * file drew 54px caps with `h3`, and onboarding step 2 drew a third set. Three
+ * copies of the same control drift the moment one of them is corrected.
+ *
+ * `AnswerTile` and `KeyCap` are now the only places a tile or a cap is drawn.
+ * Every screen composes them; nothing re-implements them. The layouts still
+ * differ — Daily centres fixed-width tiles, the archive and pack boards flex
+ * them across the full width, and that difference is in the designs — but the
+ * thing inside the layout is one component.
+ *
+ * **If a correction is needed, it goes here and lands everywhere at once.**
+ */
+
+export interface AnswerTileProps {
+  /** The letter, or undefined for an empty slot. */
+  letter?: string;
+  /** Draws the breathing caret. */
+  caret?: boolean;
+  /** Fixed px width (Daily), or flex across the row (archive, pack, level). */
+  width?: number;
+  /** 64 on Daily, 62 on the shared board. */
+  height?: number;
+}
+
+export function AnswerTile({ letter, caret, width, height = 62 }: AnswerTileProps) {
+  const sizing = width === undefined ? undefined : { width };
+  const flex = width === undefined ? 'flex-1 ' : '';
+
+  if (letter !== undefined) {
+    return (
+      <Chunky
+        offset={4}
+        shadowVar="--color-wh-answer-tile-shadow"
+        style={{ height, ...sizing }}
+        className={`${flex}items-center justify-center rounded-wh-card bg-wh-answer-tile`}
+      >
+        {/* A letter lands rather than appears. Keyed by the caller so
+            backspacing and retyping the same letter replays the drop. */}
+        <Land key={letter}>
+          <Text className="font-wh-bold text-wh-h1 text-wh-answer-tile-text">{letter}</Text>
+        </Land>
+      </Chunky>
+    );
+  }
+
+  if (caret) {
+    return (
+      <Chunky
+        offset={4}
+        shadowVar="--color-wh-answer-tile-active-shadow"
+        style={{ height, ...sizing }}
+        className={`${flex}items-center justify-center rounded-wh-card border-[3px] border-wh-primary bg-wh-answer-tile-active`}
+      >
+        {/* Not a blink — a breath. Nothing may imply a clock (rule 1). */}
+        <Breathe>
+          <View className="h-7 w-[3px] rounded-[2px] bg-wh-primary" />
+        </Breathe>
+      </Chunky>
+    );
+  }
+
+  return (
+    <Chunky
+      offset={3}
+      inset
+      shadowVar="--color-wh-answer-tile-empty-shadow"
+      style={{ height, ...sizing }}
+      className={`${flex}rounded-wh-card bg-wh-answer-tile-empty`}
+    />
+  );
+}
+
+export interface KeyCapProps {
+  letter: string;
+  /** Dimmed, but never disabled — a repeated letter needs the key twice. */
+  used?: boolean;
+  width?: number;
+  onPress?: () => void;
+}
+
+export function KeyCap({ letter, used, width, onPress }: KeyCapProps) {
+  const sizing = width === undefined ? undefined : { width };
+  const flex = width === undefined ? 'flex-1 ' : '';
+
+  return (
+    <ChunkyPressable
+      offset={3}
+      shadowVar={used ? '--color-wh-key-cap-dim-shadow' : '--color-wh-key-cap-shadow'}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={used ? `Letter ${letter}, already used` : `Letter ${letter}`}
+      style={sizing}
+      className={
+        used
+          ? `${flex}h-[56px] items-center justify-center rounded-[15px] bg-wh-key-cap-dim`
+          : `${flex}h-[56px] items-center justify-center rounded-[15px] bg-wh-key-cap`
+      }
+    >
+      <Text
+        className={
+          used
+            ? 'font-wh-bold text-wh-h2 text-wh-key-cap-dim-text'
+            : 'font-wh-bold text-wh-h2 text-wh-key-cap-text'
+        }
+      >
+        {letter}
+      </Text>
+    </ChunkyPressable>
+  );
+}
+
+/** The backspace key. Same height as a cap, its own fixed width. */
+export function BackspaceKey({ onPress }: { onPress?: () => void }) {
+  return (
+    <ChunkyPressable
+      offset={3}
+      shadowVar="--color-wh-surface-shadow"
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Delete letter"
+      className="h-[56px] w-[52px] items-center justify-center rounded-[15px] bg-wh-surface"
+    >
+      <Text className="font-wh-bold text-wh-xl text-wh-text-faint dark:text-wh-text-secondary">
+        ⌫
+      </Text>
+    </ChunkyPressable>
+  );
+}
 
 const IN = {
   header: 0,
@@ -141,48 +281,13 @@ export function AnswerRow({ length, typed, onSubmit, canSubmit }: AnswerRowProps
   return (
     <Appear delay={IN.board} rise={6} className="flex-row items-center gap-[9px]">
       <View className="flex-1 flex-row gap-[7px]">
-        {Array.from({ length }, (_, i) => {
-          const letter = letters[i];
-
-          if (letter !== undefined) {
-            return (
-              <Chunky
-                key={i}
-                offset={4}
-                shadowVar="--color-wh-answer-tile-shadow"
-                className="h-[62px] flex-1 items-center justify-center rounded-wh-card bg-wh-answer-tile"
-              >
-                <Text className="font-wh-bold text-wh-h1 text-wh-answer-tile-text">{letter}</Text>
-              </Chunky>
-            );
-          }
-
-          if (i === letters.length) {
-            return (
-              <Chunky
-                key={i}
-                offset={4}
-                shadowVar="--color-wh-answer-tile-active-shadow"
-                className="h-[62px] flex-1 items-center justify-center rounded-wh-card border-[3px] border-wh-primary bg-wh-answer-tile-active"
-              >
-                {/* Not a blink — a breath. Nothing may imply a clock (rule 1). */}
-                <Breathe>
-                  <View className="h-7 w-[3px] rounded-[2px] bg-wh-primary" />
-                </Breathe>
-              </Chunky>
-            );
-          }
-
-          return (
-            <Chunky
-              key={i}
-              offset={3}
-              inset
-              shadowVar="--color-wh-answer-tile-empty-shadow"
-              className="h-[62px] flex-1 rounded-wh-card bg-wh-answer-tile-empty"
-            />
-          );
-        })}
+        {Array.from({ length }, (_, i) => (
+          <AnswerTile
+            key={i}
+            letter={letters[i]}
+            caret={i === letters.length}
+          />
+        ))}
       </View>
 
       {ready ? (
@@ -219,47 +324,12 @@ export interface LetterKeysProps {
 
 export function LetterKeys({ keys, onKey, onBackspace }: LetterKeysProps) {
   return (
-    <Appear delay={IN.keys} rise={6} className="flex-row gap-[7px]">
-      {keys.map(({ letter, used }) =>
-        used ? (
-          <ChunkyPressable
-            key={letter}
-            offset={3}
-            shadowVar="--color-wh-key-cap-dim-shadow"
-            onPress={() => onKey?.(letter)}
-            accessibilityRole="button"
-            accessibilityLabel={`Letter ${letter}, already used`}
-            className="h-[54px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap-dim"
-          >
-            <Text className="font-wh-bold text-wh-h3 text-wh-key-cap-dim-text">{letter}</Text>
-          </ChunkyPressable>
-        ) : (
-          <ChunkyPressable
-            key={letter}
-            offset={3}
-            shadowVar="--color-wh-key-cap-shadow"
-            onPress={() => onKey?.(letter)}
-            accessibilityRole="button"
-            accessibilityLabel={`Letter ${letter}`}
-            className="h-[54px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap"
-          >
-            <Text className="font-wh-bold text-wh-h3 text-wh-key-cap-text">{letter}</Text>
-          </ChunkyPressable>
-        )
-      )}
+    <Appear delay={IN.keys} rise={6} className="flex-row gap-[6px]">
+      {keys.map(({ letter, used }) => (
+        <KeyCap key={letter} letter={letter} used={used} onPress={() => onKey?.(letter)} />
+      ))}
 
-      <ChunkyPressable
-        offset={3}
-        shadowVar="--color-wh-surface-shadow"
-        onPress={onBackspace}
-        accessibilityRole="button"
-        accessibilityLabel="Delete letter"
-        className="h-[54px] w-[54px] items-center justify-center rounded-[15px] bg-wh-surface"
-      >
-        <Text className="font-wh-bold text-wh-xl text-wh-text-faint dark:text-wh-text-secondary">
-          ⌫
-        </Text>
-      </ChunkyPressable>
+      <BackspaceKey onPress={onBackspace} />
     </Appear>
   );
 }

@@ -96,6 +96,7 @@ function PackRow({ pack, index }: { pack: Pack; index: number }) {
         <ChunkyPressable
           offset={3}
           shadowVar="--color-wh-primary-shadow"
+          onPress={() => router.replace('/store-unreachable')}
           accessibilityRole="button"
           accessibilityLabel={`Buy ${pack.name} for ${pack.price}`}
           className="rounded-wh-pill bg-wh-primary px-4 py-[10px]"
@@ -171,6 +172,7 @@ export default function NothingOwned() {
             offset={4}
             shadowVar="--color-wh-surface-quiet-shadow"
             accessibilityRole="button"
+            onPress={() => router.replace('/store-unreachable')}
             accessibilityLabel="All five in the bundle, £9.99"
             className="h-[58px] flex-row items-center justify-center gap-[10px] rounded-[19px] bg-wh-surface-quiet"
           >

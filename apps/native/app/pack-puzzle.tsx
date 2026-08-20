@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -91,7 +92,7 @@ export default function PackPuzzle() {
           delay={BOARD_TIMINGS.footer}
           className="h-[60px] flex-row items-center justify-between px-[22px]"
         >
-          <NudgeButton remaining={1} total={3} />
+          <NudgeButton remaining={1} total={3} onPress={() => router.push('/nudge-picker')} />
           <FooterNote>Pack solve · no streak</FooterNote>
         </Appear>
       </View>

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -73,7 +74,7 @@ export default function ArchivePuzzle() {
           delay={BOARD_TIMINGS.footer}
           className="h-[60px] flex-row items-center justify-between px-[22px]"
         >
-          <NudgeButton />
+          <NudgeButton onPress={() => router.push('/nudge-picker')} />
           <FooterNote>Replay · doesn&apos;t affect your streak</FooterNote>
         </Appear>
       </View>

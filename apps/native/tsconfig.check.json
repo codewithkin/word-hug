@@ -4,6 +4,8 @@
     "app/**/*.tsx",
     "components/**/*.tsx",
     "contexts/**/*.tsx",
+    "content/**/*.ts",
+    "hooks/**/*.ts",
     "lib/**/*.ts",
     "theme/**/*.ts",
     "uniwind-env.d.ts",

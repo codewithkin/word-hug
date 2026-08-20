@@ -1,11 +1,13 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
-import { Appear, Breathe, STAGGER } from '@/components/motion';
+import { Appear, Breathe, Land, STAGGER } from '@/components/motion';
 import { HelpButton, OnboardingHeader } from '@/components/onboarding-chrome';
 import { PuzzleGround } from '@/components/puzzle-ground';
+import { keyHaptic, solveHaptic } from '@/lib/feedback';
 
 /**
  * ── 05 Try the Game · onboarding step 2 of 5 ──────────────────────────────
@@ -26,31 +28,27 @@ import { PuzzleGround } from '@/components/puzzle-ground';
  * shared parts are the palette and `Chunky`, which is where the sharing
  * belongs until screens 11 and 14 show which shape actually repeats.
  *
- * ── STATE: none, deliberately ─────────────────────────────────────────────
- * Everything below is the design's own content, hard-coded. The board shows
- * L-I-G typed with the caret on the fourth tile because that is the moment
- * the design captures. Real input is the same todo as the Daily screen's, and
- * this screen should be wired at the same time as that one, from the same
- * code — not before it and not separately.
+ * ── STATE (session 7) ─────────────────────────────────────────────────────
+ * Live. The owner reported that none of the letters could be pressed, which
+ * was true — the whole screen was a picture of a board.
  *
- * Pressing → therefore advances the flow rather than checking an answer. It
- * is the honest stand-in: the button's job in the real flow is "I am done
- * here", and that is exactly what it does.
+ * It is a self-contained six-key puzzle rather than a call into
+ * `useDailyPuzzle`: this board has no hearts, no coins, no nudge tier, no
+ * streak and no storage, and it must not be able to fail. Routing it through
+ * the real loop would give a tutorial the ability to charge a player a heart.
+ *
+ * **It cannot be failed and it cannot be stuck.** A wrong guess says nothing
+ * at all — no red, no shake, no buzz, even though the real board does all
+ * three now — because this is the first puzzle anyone ever sees and the
+ * screen already gives away the answer at the bottom. → is always live and
+ * always continues, whatever is typed.
  * ──────────────────────────────────────────────────────────────────────────
  */
 
 const CLUES = ['SUN', 'MOON', 'DAY'];
 const ANSWER = 'LIGHT';
-const TYPED = ['L', 'I', 'G'];
-/** Keys the design draws as still-available. The other three are spent. */
-const KEYS = [
-  { letter: 'E', used: false },
-  { letter: 'G', used: true },
-  { letter: 'H', used: false },
-  { letter: 'I', used: true },
-  { letter: 'L', used: true },
-  { letter: 'T', used: false },
-];
+/** The design's six caps: LIGHT's five distinct letters plus one decoy. */
+const KEYS = ['E', 'G', 'H', 'I', 'L', 'T'];
 
 const IN = {
   eyebrow: 60,
@@ -62,6 +60,25 @@ const IN = {
 
 export default function TryTheGame() {
   const insets = useSafeAreaInsets();
+
+  // Starts at L-I-G, which is the moment the design captures — the player
+  // arrives two taps from a win rather than at an empty board.
+  const [typed, setTyped] = useState('LIG');
+  const solved = typed === ANSWER;
+
+  function press(letter: string) {
+    if (solved) return;
+    if (typed.length >= ANSWER.length) return;
+    const next = typed + letter;
+    setTyped(next);
+    if (next === ANSWER) solveHaptic();
+    else keyHaptic();
+  }
+
+  function backspace() {
+    if (solved) return;
+    setTyped(typed.slice(0, -1));
+  }
 
   return (
     <View className="flex-1 bg-wh-ground">
@@ -104,8 +121,8 @@ export default function TryTheGame() {
           <Appear delay={IN.board} rise={6} className="flex-row items-center gap-[9px]">
             <View className="flex-1 flex-row gap-[7px]">
               {Array.from({ length: ANSWER.length }, (_, i) => {
-                const letter = TYPED[i];
-                const isCaret = i === TYPED.length;
+                const letter = typed[i];
+                const isCaret = i === typed.length;
 
                 if (letter !== undefined) {
                   return (
@@ -115,9 +132,11 @@ export default function TryTheGame() {
                       shadowVar="--color-wh-answer-tile-shadow"
                       className="h-[62px] flex-1 items-center justify-center rounded-wh-card bg-wh-answer-tile"
                     >
-                      <Text className="font-wh-bold text-wh-h1 text-wh-answer-tile-text">
-                        {letter}
-                      </Text>
+                      <Land key={`${letter}-${i}`}>
+                        <Text className="font-wh-bold text-wh-h1 text-wh-answer-tile-text">
+                          {letter}
+                        </Text>
+                      </Land>
                     </Chunky>
                   );
                 }
@@ -158,7 +177,7 @@ export default function TryTheGame() {
               shadowVar="--color-wh-primary-shadow"
               onPress={() => router.push('/onboarding/ritual')}
               accessibilityRole="button"
-              accessibilityLabel="Done"
+              accessibilityLabel={solved ? 'You got it. Continue.' : 'Continue'}
               className="h-[62px] w-[62px] items-center justify-center rounded-[19px] bg-wh-primary"
             >
               <Text className="font-wh-bold text-wh-h2 text-wh-on-primary">→</Text>
@@ -166,38 +185,45 @@ export default function TryTheGame() {
           </Appear>
 
           <Appear delay={IN.keys} rise={6} className="flex-row gap-[7px]">
-            {KEYS.map(({ letter, used }) =>
-              used ? (
+            {KEYS.map((letter) => {
+              // Dimmed once used, but still pressable — the real board does
+              // the same, because an answer with a repeated letter needs the
+              // key twice and a dead key reads as a bug.
+              const spent = typed.includes(letter);
+              return (
                 <ChunkyPressable
                   key={letter}
                   offset={3}
-                  shadowVar="--color-wh-key-cap-dim-shadow"
+                  shadowVar={spent ? '--color-wh-key-cap-dim-shadow' : '--color-wh-key-cap-shadow'}
+                  onPress={() => press(letter)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Letter ${letter}, already used`}
-                  className="h-[54px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap-dim"
+                  accessibilityLabel={spent ? `Letter ${letter}, already used` : `Letter ${letter}`}
+                  className={
+                    spent
+                      ? 'h-[56px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap-dim'
+                      : 'h-[56px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap'
+                  }
                 >
-                  <Text className="font-wh-bold text-wh-h3 text-wh-key-cap-dim-text">{letter}</Text>
+                  <Text
+                    className={
+                      spent
+                        ? 'font-wh-bold text-wh-h2 text-wh-key-cap-dim-text'
+                        : 'font-wh-bold text-wh-h2 text-wh-key-cap-text'
+                    }
+                  >
+                    {letter}
+                  </Text>
                 </ChunkyPressable>
-              ) : (
-                <ChunkyPressable
-                  key={letter}
-                  offset={3}
-                  shadowVar="--color-wh-key-cap-shadow"
-                  accessibilityRole="button"
-                  accessibilityLabel={`Letter ${letter}`}
-                  className="h-[54px] flex-1 items-center justify-center rounded-[15px] bg-wh-key-cap"
-                >
-                  <Text className="font-wh-bold text-wh-h3 text-wh-key-cap-text">{letter}</Text>
-                </ChunkyPressable>
-              )
-            )}
+              );
+            })}
 
             <ChunkyPressable
               offset={3}
               shadowVar="--color-wh-surface-shadow"
+              onPress={backspace}
               accessibilityRole="button"
               accessibilityLabel="Delete letter"
-              className="h-[54px] w-[54px] items-center justify-center rounded-[15px] bg-wh-surface"
+              className="h-[56px] w-[52px] items-center justify-center rounded-[15px] bg-wh-surface"
             >
               <Text className="font-wh-bold text-wh-xl text-wh-text-faint dark:text-wh-text-secondary">
                 ⌫
@@ -211,7 +237,13 @@ export default function TryTheGame() {
             whole point is that the first puzzle cannot be failed, and that a
             person who is not in the mood to think can still get to the end
             of onboarding in four seconds. */}
-        <Appear delay={IN.hint} className="h-[46px] items-center px-[22px] pt-2">
+        {/* The owner reported the answer here as clipped. It was: the row was
+            a fixed 46px tall with 2px of top padding, and the chip inside it
+            is 9px of vertical padding around 17px type plus a 3px offset
+            shadow — about 50px of content in a 44px hole, so the shadow and
+            the descenders were cut off. It is min-height now and the shadow
+            has room. */}
+        <Appear delay={IN.hint} className="min-h-[52px] items-center px-[22px] pt-2">
           <View className="flex-row items-center gap-[10px] rounded-wh-pill bg-wh-surface-quiet px-4 py-[9px]">
             {/* #8A7458 / #B6A4E4 — this pairing appears on this screen only,
                 so it is written here rather than tokenised into a name that
@@ -233,11 +265,18 @@ export default function TryTheGame() {
           delay={IN.hint + 60}
           className="h-[60px] flex-row items-center justify-between px-[22px]"
         >
+          {/* Fills the board rather than opening the picker. There is no coin
+              balance in a tutorial and nothing here may cost anything — the
+              answer is already printed six pixels above this button. */}
           <ChunkyPressable
             offset={3}
             shadowVar="--color-wh-surface-shadow"
+            onPress={() => {
+              setTyped(ANSWER);
+              solveHaptic();
+            }}
             accessibilityRole="button"
-            accessibilityLabel="Nudge"
+            accessibilityLabel="Nudge. Fills in the answer."
             className="rounded-wh-pill bg-wh-surface px-[18px] py-[11px]"
           >
             <Text className="font-wh-heavy text-wh-base text-wh-pill-text">Nudge</Text>

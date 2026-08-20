@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { Appear } from '@/components/motion';
+import { completeOnboarding } from '@/lib/storage';
 
 /**
  * The header every onboarding step wears: five progress pips on the left, and
@@ -29,8 +30,27 @@ import { Appear } from '@/components/motion';
 
 export const ONBOARDING_STEPS = 5;
 
-/** Where "Skip" and the final "START" both land. */
-export const ONBOARDING_EXIT = '/';
+/**
+ * Where "Skip" and the final "START" both land.
+ *
+ * Session 7: the level map, not `/`. `/` is a redirect that re-reads the
+ * onboarding flag, so replacing to it would work but would flash an extra
+ * navigation on the way out of the flow.
+ */
+export const ONBOARDING_EXIT = '/home';
+
+/**
+ * Marks the flow done and leaves. Both exits call it — **skipping counts.**
+ *
+ * A person who skips has been shown the rule and the notification ask and has
+ * declined both. Putting the same five screens in front of them tomorrow would
+ * be overriding a decision they already made, which is the wrong side of rule
+ * 1 even though rule 1 is written about puzzles.
+ */
+export function finishOnboarding() {
+  completeOnboarding();
+  router.replace(ONBOARDING_EXIT);
+}
 
 export function StepDots({ step }: { step: number }) {
   return (
@@ -54,7 +74,7 @@ export function SkipButton({ onPress }: { onPress?: () => void }) {
     <ChunkyPressable
       offset={3}
       shadowVar="--color-wh-surface-shadow"
-      onPress={onPress ?? (() => router.replace(ONBOARDING_EXIT))}
+      onPress={onPress ?? finishOnboarding}
       accessibilityRole="button"
       accessibilityLabel="Skip onboarding"
       className="rounded-wh-pill bg-wh-surface px-4 py-[9px]"

@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -18,12 +19,18 @@ import Animated, {
  * FIRST, the product rules constrain motion more than they constrain colour.
  * "Never punish" and "never interrupt the solve" mean the interface may never
  * animate in a way that reads as urgency, correction or pressure. That rules
- * out the entire reflexive vocabulary of puzzle games: no shake on a wrong
- * guess, no flash, no bounce-with-overshoot on failure, no countdown, no
- * attention-grabbing pulse. What is left is warmth — things settle into
- * place, they breathe, they give under a finger. Concentrating the timings
- * here makes that a property of the app rather than of whoever wrote the
- * screen.
+ * out the entire reflexive vocabulary of puzzle games: no flash, no
+ * bounce-with-overshoot on failure, no countdown, no attention-grabbing pulse.
+ * What is left is warmth — things settle into place, they breathe, they give
+ * under a finger. Concentrating the timings here makes that a property of the
+ * app rather than of whoever wrote the screen.
+ *
+ * ── The exception, added session 7 at the owner's instruction ──────────────
+ * `Shake` exists. It is the one piece of correction vocabulary in the file,
+ * and every previous session's notes said it never would be. It is used by
+ * exactly one caller and gated by `WRONG_GUESS_FEEDBACK` in
+ * `lib/feedback.ts` — see that file for the argument on both sides and for the
+ * single constant that removes it again.
  *
  * SECOND, it is the only place that touches an animation library, so swapping
  * one is a single-file change. That has now happened once.
@@ -61,6 +68,8 @@ export const MOTION = {
   land: { type: 'spring', damping: 13, stiffness: 220 },
   /** Long, soft crossfades — theme changes, whole-screen swaps. */
   calm: { type: 'timing', duration: 260 },
+  /** One leg of the wrong-guess shake. Short — the whole thing is ~330ms. */
+  jolt: { type: 'timing', duration: 55 },
 } as const satisfies Record<string, MotionSpec>;
 
 /** The stagger between siblings, in ms. Three cards at 70ms reads as one gesture. */
@@ -244,6 +253,61 @@ export function Fade({ children, show, hidden = 0, style, ...props }: FadeProps)
  * sleeping animal than to a countdown. If it feels like a metronome on
  * device, delete it; nothing depends on it.
  */
+export interface ShakeProps extends ViewProps {
+  children?: ReactNode;
+  /**
+   * Change this to any new value to fire one shake. A counter, not a boolean —
+   * two wrong guesses in a row must shake twice, and a boolean that is already
+   * true cannot say "again".
+   */
+  trigger: number;
+  /** Peak horizontal travel, px. */
+  distance?: number;
+}
+
+/**
+ * A short horizontal shake.
+ *
+ * ── Read this before using it anywhere else ───────────────────────────────
+ * Added session 7 because the owner asked for it directly, and it contradicts
+ * a rule every other file in this project defends: Word Hug has no vocabulary
+ * for correction. A shake is the most recognisable piece of that vocabulary
+ * there is.
+ *
+ * It is deliberately restrained even so — four decreasing legs over ~330ms,
+ * six pixels at the peak, no rotation and no scale. That is a nudge of the
+ * head, not a buzzer. If it turns out to feel like a scolding on device, the
+ * fix is `WRONG_GUESS_FEEDBACK` in `lib/feedback.ts`, not a smaller number
+ * here.
+ *
+ * **Do not add a second caller without asking the owner.** One deliberate
+ * exception is a decision; two is a change of product.
+ */
+export function Shake({ children, trigger, distance = 6, style, ...props }: ShakeProps) {
+  const shift = useSharedValue(0);
+
+  useEffect(() => {
+    if (trigger === 0) return;
+    shift.value = withSequence(
+      withTiming(-distance, { duration: MOTION.jolt.duration }),
+      withTiming(distance, { duration: MOTION.jolt.duration }),
+      withTiming(-distance * 0.6, { duration: MOTION.jolt.duration }),
+      withTiming(distance * 0.6, { duration: MOTION.jolt.duration }),
+      withTiming(-distance * 0.25, { duration: MOTION.jolt.duration }),
+      withSpring(0, { damping: 20, stiffness: 300 })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
+
+  const jolt = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
+
+  return (
+    <Animated.View style={[jolt, style]} {...props}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export function Breathe({ children, style, ...props }: ViewProps & { children?: ReactNode }) {
   const opacity = useSharedValue(1);
 

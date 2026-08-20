@@ -39,7 +39,15 @@ export type GuessTone =
   /** Not the answer. Warm, unhurried, and completely without consequence. */
   | 'gentle'
   /** One letter off. The only place the interface gets to be encouraging. */
-  | 'close';
+  | 'close'
+  /**
+   * Not the answer, said firmly. Session 7, at the owner's instruction — see
+   * `lib/feedback.ts` for why this contradicts everything above and how to
+   * take it back out. `'gentle'` is still the default the file was written
+   * around, and `'close'` is deliberately untouched: a near miss stays warm
+   * even in firm mode, because the point of it is that it is not a rejection.
+   */
+  | 'firm';
 
 export interface GuessNoteProps {
   children: string;
@@ -65,6 +73,20 @@ export function GuessNote({ children, tone = 'gentle', size = 15, delay = 0 }: G
         <View className="rounded-wh-pill bg-[#E6F6F4] px-[18px] py-[10px] dark:bg-[#123F3C]">
           <Text
             className="font-wh-bold text-wh-accent-shadow dark:text-wh-accent-text"
+            style={{ fontSize: size }}
+          >
+            {children}
+          </Text>
+        </View>
+      ) : tone === 'firm' ? (
+        // The only red in Word Hug. `highlight` (#FF6B4A) is the app's warm
+        // coral and is explicitly NOT an error colour (D-002), so borrowing it
+        // here would quietly redefine a token that six other screens use for
+        // emphasis. These two values are local to this one state on purpose:
+        // #FDE7E1 / #4A1D18 wash, #C2410C / #FCA5A5 text.
+        <View className="rounded-wh-pill bg-[#FDE7E1] px-[18px] py-[10px] dark:bg-[#4A1D18]">
+          <Text
+            className="font-wh-bold text-[#C2410C] dark:text-[#FCA5A5]"
             style={{ fontSize: size }}
           >
             {children}

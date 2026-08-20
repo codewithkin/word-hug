@@ -235,6 +235,113 @@ or change it until `react-native-mmkv` is wired. That is the storage layer, stil
 
 ---
 
+
+
+
+## 14. Session 7b — verification and the new screens
+
+**1. `tsc` cannot be trusted to have run.** It returned exit 124 (timeout) with
+no output three times in a row and each one looked like a pass. **Always check
+the exit code**, and if it is 124 the check did not happen. `pnpm check` runs
+five fast scripts that cannot hang; tsc is still the real typecheck and still
+needs to be run somewhere it can finish — the owner's Windows machine is
+probably that place.
+
+**2. The four new screens and three new overlays have no design files.**
+`/archive`, `/packs`, `/pack/[id]`, `/shop`, `/welcome-offer`,
+`/restore-result`, `/all-caught-up`. They use only existing tokens and shapes,
+but every layout is a guess. Corrections welcome; this is the largest block of
+unverified appearance in the app.
+
+**3. Nothing can actually be bought.** Every purchase button on every one of
+those screens routes to `/store-unreachable`. That is honest and leaveable, and
+it is not a shop. **Every price is a hard-coded placeholder** in
+`content/packs.ts` and `app/shop.tsx`.
+
+**4. Pack ownership is a local cache.** `getOwnedPacks()` reads MMKV. When
+RevenueCat is wired, entitlements must *write* that cache and never read it.
+
+**5. Three levels still give each other away** — 31/35, 53/57, 63/64.
+`pnpm levels:check` lists them.
+
+**6. `/welcome-offer` is reachable and never triggered.** Showing it
+automatically needs the owner's decision on *when*. Not during onboarding, not
+on a puzzle screen, not on the first session.
+
+## 13. Session 7 — READ THIS FIRST
+
+**1. Onboarding now tells the player a lie.**
+`app/onboarding/welcome.tsx`: *"No timer, no score, no way to lose."* Hearts
+add a timer and a way to be stopped. It is the second sentence a new player
+reads, and it is the kind of promise a store reviewer notices. **This needs the
+owner's decision** — change the copy, or turn hearts off in `lib/lives.ts`.
+Related: `app/onboarding/ritual.tsx` says "Miss a day and nothing is taken from
+you", which is still true of the streak and no longer true of hearts.
+
+**2. Two rules were broken on purpose and both have one switch.**
+`WRONG_GUESS_FEEDBACK` in `lib/feedback.ts` (red, shake, buzz) and
+`HEARTS_ENABLED` in `lib/lives.ts`. If either feels wrong on device, that is
+the line, not a smaller number somewhere.
+
+**3. The 100 levels are unvalidated.** `scripts/puzzle-check.mjs` has never run
+against them. A level with two valid answers looks, to a player, exactly like
+the game rejecting a correct word — and now it costs them a heart too.
+
+**4. `app/home.tsx` has no design file.** First screen in the project built
+without one. It only uses existing tokens and shapes, but its layout is a
+guess and corrections are welcome.
+
+**5. Three levels still give each other away** — 31/35, 53/57, 63/64. The
+de-clustering pass could not find a same-difficulty swap. `pnpm levels:check`
+lists them.
+
+**6. The heart clock is a stored timestamp, not a timer.** Regen keeps running
+while the app is closed, which is correct — but it also means moving the device
+clock forward refills hearts. `daily.highWaterDate` guards the puzzle schedule;
+nothing guards hearts. Deliberate: it is a cozy word game, not a competition.
+
+**7. `keysFor` is duplicated** in `apps/native/lib/puzzles.ts` and
+`scripts/level-check.mjs`, because the script has no build step. **If one
+changes, change both** — a drift means the checker validates a key row the
+player never sees, and it would pass.
+
+## 12. Session 6 — the game layer
+
+Ranked by how likely each is to be mistaken for something else.
+
+1. **MMKV missing → onboarding on every launch.** `lib/storage` falls back to an
+   in-memory Map if the native module will not construct, so the app runs perfectly
+   and forgets everything when it closes. The symptom is onboarding every time, which
+   reads as a broken first-launch flag and is not one. Check the module before
+   touching `completeOnboarding()`.
+
+2. **An unvalidated puzzle with two valid answers reads as a broken guess handler.**
+   None of the 42 puzzles in `content/daily.ts` has been through
+   `scripts/puzzle-check.mjs`. If the owner types a word that genuinely hugs all
+   three clues and the game says "not this one", the bank is wrong, not
+   `gradeGuess`.
+
+3. **Six-letter answers narrow the tiles to 46px.** `d-0034` (GROUND) is the only one
+   in the bundled bank. Five tiles at 56px is the design; six at 56px overflows
+   360dp. If it looks cramped, that is the trade and it is in `app/index.tsx`.
+
+4. **The key row is six flexed caps, not five fixed ones.** The 09 daily mock draws
+   five at 52px because its answer is HOUSE; the same screen's own alternate-state
+   designs draw six flexed, which is what shipped. Not an oversight.
+
+5. **The hint badge shows the coin balance.** A stand-in until nudges are wired — the
+   design's "3" is a nudge count, not a wallet. It will read as correct on a fresh
+   install, because the install grant is also 3.
+
+6. **`streak > 0` hides the streak pill.** A brand-new player has no streak pill on
+   the Daily screen and no streak line on the celebration. Deliberate: "0 day streak"
+   on someone's first morning is a scolding.
+
+7. **`/wrong-guess`, `/near-miss` and `/solved-today` still exist as routes** and
+   still show the design's hard-coded placeholder content. They are for walking the
+   states from the link row. The real states are phases of `app/index.tsx` and look
+   the same. Do not fix a discrepancy between them by editing the route.
+
 ## 11. Things that are NOT bugs — do not "fix" them
 
 - **The Daily background is a three-stop radial gradient**, not `#FFF9EF`.
@@ -255,3 +362,6 @@ or change it until `react-native-mmkv` is wired. That is the storage layer, stil
 - **The empty 46px box on the right of the Settings/Stats/How-to-Play header** is
   what centres the title.
 - **No status bar, notch or home indicator** is drawn anywhere (D-001).
+- **A brand-new player sees no streak pill.** `streak > 0` hides it (session 6).
+- **The bank is 42 puzzles and then `/caught-up`.** Not a crash; the schedule has
+  simply run out. `EPOCH` is 2026-08-17, so that is 2026-09-27.

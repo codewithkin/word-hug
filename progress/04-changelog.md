@@ -4,6 +4,206 @@ Newest first. This is where the *reasoning* lives — git has the file list.
 
 ---
 
+## Session 7b — the remaining screens, and a verification tool that lied
+
+### Every screen now exists
+
+Screens 10, 12, 13 and 15 and overlays D, G and H were the last gaps from
+session 3. All seven are built:
+
+| | Route | Note |
+|---|---|---|
+| 10 Archive | `/archive` | Seven-day window. **No "missed" state and there must never be one** — a day you did not play looks like a day you have not played yet, which is what makes missing one cost nothing. |
+| 12 Pack List | `/packs` | Owned and unowned rows are the same size and shape. A list, not an advert. |
+| 13 Pack Detail | `/pack/[id]` | Contents visible whether or not it is owned — you see what you would be buying. |
+| 15 Shop | `/shop` | Keeps the line "There's nothing to buy today." |
+| D Welcome offer | `/welcome-offer` | **No countdown**, no strikethrough, no second chance. Nothing triggers it; reachable from the shop only. |
+| G Restore result | `/restore-result` | Both outcomes, one sheet. "Nothing found" is not an error. |
+| H Caught up | `/all-caught-up` | The end of the levels. Not `/caught-up`, which is the 09 alternate state. |
+
+Packs are curated *views* over `content/levels.ts`, not a second bank — one
+pipeline, one validator, and a pack cannot contain a level that does not exist
+because the build would not typecheck.
+
+### One board, three layouts
+
+`AnswerTile`, `KeyCap` and `BackspaceKey` in `components/puzzle-board.tsx` are
+now the only places a tile or a cap is drawn. There were three copies — Daily
+at 56px/`h2`, the shared board at 54px/`h3`, onboarding step 2 with a third set
+— which is why the owner saw the archive keys as smaller. The layouts still
+differ, because the designs differ; the thing inside them does not.
+
+### `scripts/nav-check.mjs`
+
+Builds the navigation graph from source and asserts three things: no orphaned
+routes, no broken links, and nothing more than two hops from home. It found
+seven orphans and one trap on its first run — `/token-probe` was registered as
+a modal with no explicit dismiss, which is a dead end on a device without a
+back gesture.
+
+It also found two bugs in itself, both of which reported live screens as
+orphaned. Written down in the file, because a graph tool that under-reports
+edges is worse than no graph tool.
+
+### The verification tool that lied
+
+**`npx tsc -p tsconfig.check.json --noEmit` returned exit 124 — a timeout —
+and produced no output, which is indistinguishable from a pass.** Three
+"clean" typechecks in a row were nothing of the kind, and a missing `Land`
+import shipped through all three.
+
+tsc reads several thousand files out of the pnpm symlink farm and on a mounted
+filesystem it can stall completely; load average was 0.00 while it "ran".
+
+`scripts/imports-check.mjs` is the response. It reads only the app's own 77
+files, runs in well under a second, cannot hang, and catches exactly the class
+of error that got through: a component used and never imported. **It is not a
+typecheck and says so in its own output.** tsc is still the real check and
+still has to be run somewhere it can finish.
+
+---
+
+## Session 7 — levels, hearts, and two rules deliberately broken
+
+The owner played session 6's build and reported eleven things. All eleven were
+real. Then, mid-session, they changed the architecture.
+
+### The bugs, and what each one actually was
+
+| Reported | Cause |
+|---|---|
+| Onboarding step 2's letters don't press | The screen was a picture of a board. No handlers, by design, since session 3. |
+| The answer chip at the bottom is clipped | A 46px row holding ~50px of content — the chip's 3px offset shadow had nowhere to go. |
+| Step 2's Nudge does nothing | Never wired. |
+| Step 3 says Thursday on a Wednesday | The design's own Thursday, hard-coded. It would have said Thursday forever. |
+| Step 3's streak icon is "just a circle" | It was: a coral dot with an inset shadow and no mark. |
+| Step 4's "Other" does nothing | The design comment said so — "nowhere to go until there is a time picker". |
+| The in-game nudge doesn't work | The picker was static content; nothing wrote a tier. |
+| Nudge coins ≠ header coins | `nudge-picker.tsx` had `12` written into it. The header had the real balance. |
+| Archive keys too small | 54px caps with `h3` type against Daily's 56px `h2`, on a row also carrying a fixed backspace. |
+| Splash icon has a rounded corner eating the words | **Not ours.** Android 12+ masks the splash icon into a circle; a 720×505 wordmark cannot survive it. |
+
+The splash one is worth keeping: the artwork is now padded into a 1024×1024
+square with the wordmark scaled to fit inside the mask's safe circle, so the
+OS can clip all it likes and there is nothing at the edges to lose.
+
+### Two product rules broken on purpose
+
+**Rule 1, "never punish", is no longer true, twice over, at the owner's
+explicit instruction.**
+
+1. A wrong guess is now red, shakes the board and buzzes. One switch:
+   `WRONG_GUESS_FEEDBACK` in `lib/feedback.ts`.
+2. Levels have hearts. A wrong guess costs one; at zero, guessing stops until
+   regen or a refill. One switch: `HEARTS_ENABLED` in `lib/lives.ts`.
+
+Both files carry the argument on each side and the exact line to change to
+revert. Three exemptions are built into the heart rule and are load-bearing:
+the daily puzzle is never gated (PRD rule 2), a replay never costs, and a near
+miss never costs — charging for the one encouraging moment in the loop would
+inverting its meaning.
+
+**`app/onboarding/welcome.tsx` still says "No timer, no score, no way to lose."
+That is now false and it is the second sentence a new player reads.** It needs
+the owner's decision; it is at the top of `05-known-issues.md`.
+
+### The architecture changed
+
+Daily-only became level-based, with daily alongside it:
+
+- **`content/levels.ts` — 100 levels**, generated by `scripts/build-levels.mjs`
+  from `scripts/levels.source.mjs`. Difficulty is derived, never hand-written
+  (PRD §3.2). Block means ramp 1.0 → 5.0.
+- **`app/home.tsx`** — the level map, and the app's new front door. `/` is now
+  a redirect; the daily puzzle moved to `/daily` and is a card at the top of
+  the map.
+- **`app/level/[n].tsx`** — one level, on the shared `puzzle-board`. That is
+  the third caller of it, which is the generalisation `00-START-HERE` item 5
+  was waiting for.
+- **Streak counts either** — one level OR the daily keeps it alive
+  (`advanceStreakToday`).
+
+### The level analyser paid for itself immediately
+
+`scripts/level-check.mjs` rejected the first ordering: block means of
+2.80 → 3.20, which is a ramp on paper and a flat line in the hand. It also
+found 13 pairs of levels giving each other away and two levels whose key row
+was a bare anagram of the answer. All three are fixed in the generator rather
+than the output — the ramp is 1.0 → 5.0, give-aways are down to 3, and
+`keysFor` now guarantees at least one decoy.
+
+**Still unchecked, and still the worst possible content bug: whether any level
+has a second valid answer.** Only `scripts/puzzle-check.mjs` can say, and it
+has never been run against any of the 142 puzzles now in the app.
+
+---
+
+## Session 6 — the game
+
+**The owner ran the build. It opened straight onto the Daily screen, no onboarding,
+and nothing on it responded to a tap.** Both were true, neither was a bug, and the
+report was worth more than the four sessions of code it landed on.
+
+### Nothing was broken; two layers had simply never been written
+
+The buttons were dead because `app/index.tsx` had no `onPress` on any of them — the
+file said so in its own header ("STATE: none... hard-coded on purpose"). Onboarding
+did not show because nothing gated it; `app/onboarding/_layout.tsx` said so too. Four
+sessions of screens had been built as a static gallery, deliberately, and session 6
+is the one that turns the gallery into a product.
+
+Worth recording because the failure mode was so convincing: an app where every
+control is inert and the first-run flow never appears looks exactly like a broken
+build, and it was a complete one.
+
+### What landed
+
+- **`lib/storage/`** — `keys.ts`, `schema.ts`, `index.ts`, implementing
+  `systems/storage-persistence.md` §2–§5. Two MMKV instances, zod on every read, the
+  clock-tamper high-water guard, and an in-memory fallback so a missing native module
+  degrades to "forgets on relaunch" instead of a white screen.
+- **`lib/dates.ts`** — the calendar maths, deliberately free of any React Native
+  import so it is the one part of the loop testable in plain Node.
+- **`content/daily.ts`** — 42 hand-written puzzles, six weeks, ordered to the PRD's
+  weekly difficulty curve. **Unvalidated content** — see below.
+- **`lib/puzzles.ts`** — the schedule (`EPOCH` = 2026-08-17, a Monday), guess grading,
+  and the letter-key generator.
+- **`hooks/use-daily-puzzle.ts`** — the loop, as four phases.
+- **`components/solved-board.tsx`** — `app/solved-today.tsx`'s body, extracted so the
+  Daily screen's `done` phase and the route render the same thing.
+- **First-launch gating**, reminder persistence, and Settings toggles that now write.
+- **`scripts/daily-loop-check.mjs`** — 229 checks, run with `pnpm check:loop`.
+
+### Three of the four alternate-state routes are now branches
+
+`/wrong-guess`, `/near-miss` and `/solved-today` are phases of `app/index.tsx`. The
+routes still exist, because the scaffolding link row is still the owner's only way to
+walk a state in both themes and the token probe has not been confirmed all-OK yet.
+They are dead ends in the product and nothing navigates to them.
+
+### The one place the designs and the PRD disagree, resolved towards the designs
+
+PRD §2.2 says input is **free text**, "not a letter picker", and gives a real reason:
+a picker reveals the answer length. Every 09 design — the daily board and all four of
+its alternate states — draws a letter-key row and fixed answer tiles, which is a
+picker. `00-START-HERE.md`'s precedence table puts `designs/` at rank 1 for
+appearance and the PRD at rank 4, so the picker is what shipped, with decoy letters
+in the key row so it is not simply an anagram.
+
+**This is a product decision, not a code decision, and it is the owner's to reverse.**
+Reversing it is not small: it changes the board, both guess states, the solved state,
+screens 11 and 14, and it deletes `keysFor`.
+
+### The bank is not validated content
+
+`scripts/puzzle-check.mjs` was built in session 1 and proven on two controls, and it
+has not been run against a single one of these 42 puzzles. The two things it checks
+are exactly the two a human cannot: whether a **second** word also hugs all three
+clues, and what the difficulty actually is. Every `difficulty` in `content/daily.ts`
+is a placeholder chosen to fit the curve.
+
+---
+
 ## Session 5 — the build was broken, and nobody could have known
 
 **No screens built. The first build was not going to work, and now it does.**

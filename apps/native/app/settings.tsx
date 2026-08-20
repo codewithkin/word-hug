@@ -6,6 +6,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chunky } from '@/components/chunky';
 import { Appear, MOTION, animate } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
+import { cancelDailyNudge, parseTime, scheduleDailyNudge } from '@/lib/notifications';
+import {
+  getHaptics,
+  getReminder,
+  getSound,
+  setHaptics,
+  setReminder,
+  setSound,
+} from '@/lib/storage';
 import { ScreenHeader } from '@/components/screen-header';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
@@ -154,9 +163,49 @@ function External() {
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
-  const [sound, setSound] = useState(true);
-  const [haptics, setHaptics] = useState(true);
-  const [reminder, setReminder] = useState(true);
+
+  // Seeded from storage, written on every change. Session 6: these three were
+  // local state that persisted nothing, which is why the design's "all on"
+  // default survived a relaunch and looked correct while being a lie.
+  const [sound, setSoundState] = useState(getSound);
+  const [haptics, setHapticsState] = useState(getHaptics);
+  const [reminder, setReminderState] = useState(() => getReminder().enabled);
+  const [reminderTime] = useState(() => getReminder().time);
+
+  // Written side by side rather than from inside the state updater: an
+  // updater must be a pure function of the previous state, and React may call
+  // it twice. A doubled MMKV write is harmless; a doubled `cancelDailyNudge`
+  // below would not be, so all three follow the same shape.
+  const toggleSound = () => {
+    const next = !sound;
+    setSoundState(next);
+    setSound(next);
+  };
+
+  const toggleHaptics = () => {
+    const next = !haptics;
+    setHapticsState(next);
+    setHaptics(next);
+  };
+
+  /**
+   * The toggle owns the OS schedule as well as the flag. Turning it off has to
+   * actually cancel the notification — a switch that says "off" while the
+   * reminder still arrives tomorrow morning is the single most annoying bug
+   * this screen could have.
+   */
+  const toggleReminder = () => {
+    const next = !reminder;
+    setReminderState(next);
+    setReminder(next, reminderTime);
+
+    if (next) {
+      const at = parseTime(reminderTime);
+      if (at) void scheduleDailyNudge(at.hour, at.minute);
+    } else {
+      void cancelDailyNudge();
+    }
+  };
 
   const open = (path: string) => {
     Linking.openURL(`${WEB}${path}`).catch(() => {
@@ -182,14 +231,14 @@ export default function Settings() {
               <Row
                 label="Sound"
                 right={
-                  <Toggle value={sound} onChange={() => setSound((v) => !v)} label="Sound" />
+                  <Toggle value={sound} onChange={toggleSound} label="Sound" />
                 }
               />
               <Row
                 label="Haptics"
                 last
                 right={
-                  <Toggle value={haptics} onChange={() => setHaptics((v) => !v)} label="Haptics" />
+                  <Toggle value={haptics} onChange={toggleHaptics} label="Haptics" />
                 }
               />
             </Card>
@@ -201,11 +250,7 @@ export default function Settings() {
               <Row
                 label="Daily reminder"
                 right={
-                  <Toggle
-                    value={reminder}
-                    onChange={() => setReminder((v) => !v)}
-                    label="Daily reminder"
-                  />
+                  <Toggle value={reminder} onChange={toggleReminder} label="Daily reminder" />
                 }
               />
               <Row
@@ -215,7 +260,7 @@ export default function Settings() {
                   <View className="rounded-wh-md bg-wh-surface-quiet px-4 py-2">
                     {/* #6E5B44 / #C6B7EC — this screen only. */}
                     <Text className="font-wh-bold text-[18px] text-[#6E5B44] dark:text-[#C6B7EC]">
-                      9:00
+                      {reminderTime}
                     </Text>
                   </View>
                 }

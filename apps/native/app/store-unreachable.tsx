@@ -96,6 +96,7 @@ export default function StoreUnreachable() {
             offset={5}
             shadowVar="--color-wh-primary-shadow"
             accessibilityRole="button"
+            onPress={() => router.replace('/home')}
             accessibilityLabel="Try again"
             className="h-[60px] w-full items-center justify-center rounded-wh-lg bg-wh-primary"
           >
@@ -104,7 +105,7 @@ export default function StoreUnreachable() {
             </Text>
           </ChunkyPressable>
 
-          <QuietLink label="Restore purchases" />
+          <QuietLink onPress={() => router.back()} label="Restore purchases" />
         </Appear>
       </View>
     </View>

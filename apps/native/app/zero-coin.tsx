@@ -44,6 +44,24 @@ const TIERS = [
 ];
 
 export default function ZeroCoinPrompt() {
+  /**
+   * ── Buying, session 7 ─────────────────────────────────────────────────
+   * The owner reported dead buttons across the app and these were three of
+   * them. They are still not real purchases — `react-native-purchases` is
+   * installed and unconfigured, and **every price on this sheet is a
+   * hard-coded placeholder that must come from RevenueCat before release**
+   * (see the file header).
+   *
+   * So they route to `/store-unreachable`, which is the screen this exact
+   * situation already has: "we can't reach the store right now". That is
+   * true, it is a screen the player can leave, and it is honest — unlike a
+   * button that swallows a tap, and unlike a fake success that would credit
+   * coins nobody paid for.
+   */
+  function buy() {
+    router.replace('/store-unreachable');
+  }
+
   return (
     <Sheet onDismiss={() => router.back()}>
       <Text className="font-wh-bold text-wh-h3 text-wh-clue-text">You&apos;re out of coins</Text>
@@ -58,6 +76,7 @@ export default function ZeroCoinPrompt() {
           // elevation, so they get no chunky give either.
           <Pressable
             key={tier.coins}
+            onPress={buy}
             accessibilityRole="button"
             accessibilityLabel={`${tier.coins} coins for ${tier.price}`}
             className="flex-1 items-center gap-[5px] rounded-[18px] bg-wh-surface-inset py-[13px] dark:bg-wh-answer-tile-active"
