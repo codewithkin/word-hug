@@ -47,9 +47,19 @@ export function LevelNode({ n, state, index = 0, onPress }: LevelNodeProps) {
           offset={3}
           inset
           shadowVar="--color-wh-answer-tile-empty-shadow"
-          className="h-[54px] w-[54px] items-center justify-center rounded-wh-card bg-wh-answer-tile-empty"
+          className="h-[54px] w-[54px] items-center justify-center gap-[1px] rounded-wh-card bg-wh-answer-tile-empty"
         >
-          <Text className="font-wh-heavy text-wh-base text-wh-text-whisper">{n}</Text>
+          {/* A padlock AND the number, at the owner's request. The number
+              alone read as "a level" rather than "a level you cannot reach
+              yet" — the sunken treatment was too quiet to carry that on its
+              own. Drawn from two rounded views rather than an icon font so it
+              inherits the palette: a shackle above a body. */}
+          <View className="h-[7px] w-[9px] rounded-t-[5px] border-[2px] border-b-0 border-wh-text-whisper" />
+          <View className="h-[9px] w-[13px] items-center justify-center rounded-[3px] bg-wh-text-whisper">
+            <Text className="font-wh-heavy text-[7px] leading-[8px] text-wh-answer-tile-empty">
+              {n}
+            </Text>
+          </View>
         </Chunky>
       </View>
     );

@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +45,13 @@ const COIN_TIERS = [
 
 export default function Shop() {
   const insets = useSafeAreaInsets();
+  /**
+   * `?coins=1` from the coin pill. Coins already lead the page, so this only
+   * changes the eyebrow — landing someone who tapped a coin balance on a
+   * heading that says "Nudge coins" is enough to confirm they arrived where
+   * they meant to. A scroll-to would be motion with nothing to show.
+   */
+  const { coins: wantsCoins } = useLocalSearchParams<{ coins?: string }>();
   const [coins, setCoins] = useState(getCoins);
   const [owned, setOwned] = useState<string[]>(getOwnedPacks);
   const [offline, setOffline] = useState(false);
@@ -87,7 +94,7 @@ export default function Shop() {
           <Appear delay={60} className="gap-[10px]">
             <View className="flex-row items-baseline justify-between">
               <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
-                Nudge coins
+                {wantsCoins ? 'Coins — spend them on hints' : 'Coins'}
               </Text>
               <View className="flex-row items-center gap-2">
                 <Chunky

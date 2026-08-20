@@ -4,6 +4,7 @@ import { FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
+import { CoinPill } from '@/components/coin-pill';
 import { HeartsMeter } from '@/components/hearts-meter';
 import { LevelNode, type LevelNodeState } from '@/components/level-node';
 import { Appear } from '@/components/motion';
@@ -157,21 +158,7 @@ export default function Home() {
               <HeartsMeter hearts={hearts} nextInMs={nextHeartInMs} onPress={onRefillHearts} />
             ) : null}
 
-            <Chunky
-              offset={3}
-              shadowVar="--color-wh-surface-shadow"
-              className="h-[42px] flex-row items-center gap-2 rounded-wh-pill bg-wh-surface pl-[10px] pr-[14px]"
-            >
-              <Chunky
-                offset={-3}
-                inset
-                shadowVar="--color-wh-coin-dot-shadow"
-                className="h-6 w-6 items-center justify-center rounded-wh-pill bg-wh-primary"
-              >
-                <Text className="font-wh-bold text-wh-sm text-wh-coin-glyph">$</Text>
-              </Chunky>
-              <Text className="font-wh-heavy text-wh-md text-wh-text-primary">{coins}</Text>
-            </Chunky>
+            <CoinPill coins={coins} />
           </View>
         </Appear>
 
@@ -281,10 +268,10 @@ export default function Home() {
         <Appear delay={160} className="flex-row gap-2 px-[18px] pb-3">
           {(
             [
-              ['Archive', '/archive', 'Yesterday and the six before it'],
-              ['Packs', '/packs', 'Fifty more puzzles, by theme'],
+              ['Packs', '/packs', 'Two hundred and fifty more puzzles, by theme'],
               ['Stats', '/stats', 'What you have solved'],
               ['Shop', '/shop', 'Coins and packs'],
+              ['Settings', '/settings', 'Sound, reminders and the rest'],
             ] as const
           ).map(([label, href, hint]) => (
             <ChunkyPressable

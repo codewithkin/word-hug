@@ -70,8 +70,14 @@ export const PROGRESS = {
  */
 export const MAX_HEARTS = 5;
 
-/** Minutes to regenerate one heart. */
-export const HEART_REGEN_MINUTES = 20;
+/**
+ * Minutes to regenerate one heart.
+ *
+ * Five, at the owner's instruction. Twenty meant a player who lost the meter
+ * on a hard level was locked out for an hour and forty minutes, which is not a
+ * pause — it is the end of the session.
+ */
+export const HEART_REGEN_MINUTES = 5;
 
 /** Coins to refill all hearts at once. */
 export const HEART_REFILL_COST = 2;
