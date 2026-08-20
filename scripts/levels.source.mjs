@@ -45,7 +45,7 @@ house     | green:b, boat:a, light:b      | home       | free
 water     | fall:a, melon:a, under:b      | element    | free
 stone     | lime:b, wall:a, corner:b      | material   | free
 sun       | flower:a, shine:a, rise:a     | sky        | free
-ball      | foot:b, room:a, snow:b        | play       | free
+ball      | room:a, eye:b, snow:b         | play       | free
 book      | case:a, note:b, mark:a        | things     | free
 hand      | bag:a, shake:a, second:b      | body       | free
 light     | day:b, house:a, moon:b        | element    | free
@@ -54,7 +54,7 @@ fish      | cat:b, bowl:a, gold:b         | animals    | free
 foot      | ball:a, print:a, bare:b       | body       | free
 rain      | bow:a, coat:a, drop:a         | weather    | free
 star      | fish:a, light:a, super:b      | sky        | free
-bird      | black:b, house:a, song:a      | animals    | free
+bird      | black:b, cage:a, song:a       | animals    | free
 night     | mare:a, mid:b, fall:a         | time       | free
 cake      | pan:b, cup:b, walk:a          | food       | free
 milk      | shake:a, butter:b, man:a      | food       | free
