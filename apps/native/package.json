@@ -9,7 +9,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:android": "eas build -p android --profile development",
+    "build:ios": "eas build -p ios --profile development",
+    "build:preview": "eas build -p android --profile preview"
   },
   "dependencies": {
     "@expo-google-fonts/baloo-2": "^0.2.3",
@@ -68,6 +71,7 @@
     "@types/node": "^26.1.2",
     "@types/react": "~19.2.17",
     "@word-hug/config": "workspace:*",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "eas-cli": "^22.0.0"
   }
 }
