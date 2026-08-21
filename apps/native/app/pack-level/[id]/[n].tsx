@@ -55,7 +55,6 @@ export default function PackLevelScreen() {
     replay,
     typed,
     keys,
-    used,
     note,
     nudgeLine,
     clues,
@@ -140,7 +139,6 @@ export default function PackLevelScreen() {
           length={level.answer.length}
           typed={typed}
           keys={keys}
-          used={used}
           coins={coins}
           canSubmit={canSubmit}
           shakeTrigger={shakeTrigger}

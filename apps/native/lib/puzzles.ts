@@ -163,21 +163,34 @@ function seedFrom(text: string): number {
 }
 
 /**
- * The letters offered for a puzzle: every distinct letter of the answer, plus
- * decoys up to `KEY_COUNT`, in a stable per-puzzle order.
+ * The letters offered for a puzzle: **one key per letter occurrence** in the
+ * answer, plus decoys up to `KEY_COUNT`, in a stable per-puzzle order.
+ *
+ * ── One key per occurrence, not per distinct letter (session 8b) ──────────
+ * This used to be `new Set(answer)`. Level 3 is `EYE`, which offered a single
+ * `E`, and the owner reported it as unsolvable — reasonably. The board *did*
+ * accept a second tap on the same key, and the code even said so, but a key
+ * that **dims after one use** is the interface stating that it is spent. The
+ * comment defending the old behaviour called a dead key "a bug"; a key that
+ * looks dead is the same bug wearing a coat.
+ *
+ * 77 of the 300 answers have a repeated letter, so this was not an edge case.
+ * `pepper` is the worst: three Ps and two Es.
+ *
+ * ── What this costs ───────────────────────────────────────────────────────
+ * Wider key rows. `pepper` needs six letter keys plus a decoy, so seven — the
+ * caps are `flex-1` and simply get narrower. Nothing in the bank needs more
+ * than seven.
  *
  * ── Why decoys at all ─────────────────────────────────────────────────────
  * Without them the key row *is* the answer, unordered — an anagram, which is a
  * different and much easier puzzle. Two or three decoys keep the clues doing
  * the work while still ruling out the free-text problem the design solved by
  * showing keys in the first place.
- *
- * An answer with more distinct letters than `KEY_COUNT` would truncate and
- * become unsolvable, so the count floors at what the answer needs. Nothing in
- * the bundled bank hits that, but a future six-distinct-letter answer would.
  */
 export function keysFor(puzzle: Puzzle): string[] {
-  const needed = [...new Set(normalise(puzzle.answer).replace(/[^a-z]/g, ''))];
+  // Every character, repeats included — that is the whole change.
+  const needed = [...normalise(puzzle.answer).replace(/[^a-z]/g, '')];
   const decoys = [...DECOY_POOL.toLowerCase()].filter((c) => !needed.includes(c));
 
   let seed = seedFrom(puzzle.id);
@@ -189,10 +202,10 @@ export function keysFor(puzzle: Puzzle): string[] {
     return (seed >>> 0) / 4294967296;
   };
 
-  // `needed.length + 1` is the floor, not `needed.length`: an answer with six
-  // distinct letters would otherwise fill the row exactly and the key set
-  // would BE the answer, unordered. That is an anagram — a different and much
-  // easier puzzle. `scripts/level-check.mjs` fails the bank if this regresses.
+  // `needed.length + 1` is the floor, not `needed.length`: an answer that
+  // exactly fills the row makes the key set BE the answer, unordered. That is
+  // an anagram — a different and much easier puzzle.
+  // `scripts/level-check.mjs` fails the bank if this regresses.
   const keys = [...needed];
   while (keys.length < Math.max(KEY_COUNT, needed.length + 1) && decoys.length > 0) {
     const [picked] = decoys.splice(Math.floor(next() * decoys.length), 1);

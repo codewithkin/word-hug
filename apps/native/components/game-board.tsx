@@ -62,9 +62,12 @@ export interface GameBoardProps {
   length: number;
   /** What is in the tiles right now, uppercase. */
   typed: string;
+  /**
+   * One entry per letter occurrence in the answer, plus decoys — see
+   * `keysFor`. **May contain the same letter twice**, which is the point:
+   * `EYE` offers two Es.
+   */
   keys: string[];
-  /** Letters spent by `typed`. Dimmed, never disabled. */
-  used: Set<string>;
   /** The coin balance, shown on the hint button's badge. */
   coins: number;
   canSubmit: boolean;
@@ -90,7 +93,6 @@ export function GameBoard({
   length,
   typed,
   keys,
-  used,
   coins,
   canSubmit,
   shakeTrigger = 0,
@@ -216,9 +218,25 @@ export function GameBoard({
         {/* ── Letter keys ──────────────────────────────────────────────── */}
         <View className="h-[74px] flex-row items-center justify-center gap-2 px-[22px]">
           {keys.map((key, i) => {
-            const spent = used.has(key);
+            /**
+             * ── Dimming, per occurrence ──────────────────────────────────
+             * `EYE` shows two Es. Typing one must dim exactly one of them, so
+             * "spent" cannot be `used.has(letter)` — that would grey both and
+             * tell the player the letter is gone.
+             *
+             * `rank` is which copy of this letter this key is (1st, 2nd, …).
+             * The key dims once the typed word contains at least that many of
+             * it. So the first E dims after one E is typed and the second only
+             * after two, which is exactly what the player has done.
+             */
+            const rank = keys.slice(0, i + 1).filter((k) => k === key).length;
+            const typedCount = [...typed].filter((c) => c === key).length;
+            const spent = typedCount >= rank;
+
             return (
-              <Appear key={key} index={i} delay={IN.keys} rise={6} className="flex-1">
+              // Index, not letter: `keys` can hold the same letter twice and a
+              // duplicate React key silently drops one of the caps.
+              <Appear key={`${key}-${i}`} index={i} delay={IN.keys} rise={6} className="flex-1">
                 {/* A spent key dims and stays tappable — an answer with a
                     repeated letter needs it twice, and a dead key is a bug. */}
                 <ChunkyPressable
@@ -226,7 +244,11 @@ export function GameBoard({
                   shadowVar={spent ? '--color-wh-key-cap-dim-shadow' : '--color-wh-key-cap-shadow'}
                   onPress={() => onKey(key)}
                   accessibilityRole="button"
-                  accessibilityLabel={spent ? `Letter ${key}, already used` : `Letter ${key}`}
+                  /* Says how many are left rather than "already used", which
+                     on a repeated letter read as "this one is finished". */
+                  accessibilityLabel={
+                    spent ? `Letter ${key}, used` : `Letter ${key}`
+                  }
                   className={
                     spent
                       ? 'h-14 items-center justify-center rounded-[15px] bg-wh-key-cap-dim'

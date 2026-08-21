@@ -86,7 +86,6 @@ export default function DailyPuzzle() {
     phase,
     typed,
     keys,
-    used,
     note,
     clues,
     compounds,
@@ -208,8 +207,7 @@ export default function DailyPuzzle() {
               length={length}
               typed={typed}
               keys={keys}
-              used={used}
-              coins={coins}
+                  coins={coins}
               canSubmit={canSubmit}
               shakeTrigger={shakeTrigger}
               correctAt={correctAt}

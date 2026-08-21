@@ -50,7 +50,6 @@ export default function LevelScreen() {
     replay,
     typed,
     keys,
-    used,
     note,
     nudgeLine,
     coins,
@@ -136,7 +135,6 @@ export default function LevelScreen() {
           length={level.answer.length}
           typed={typed}
           keys={keys}
-          used={used}
           coins={coins}
           canSubmit={canSubmit}
           shakeTrigger={shakeTrigger}

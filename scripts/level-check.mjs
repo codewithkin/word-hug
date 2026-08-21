@@ -157,7 +157,8 @@ function seedFrom(text) {
 }
 
 function keysFor(id, answer) {
-  const needed = [...new Set(answer.replace(/[^a-z]/g, ''))];
+  // One key per OCCURRENCE — mirrors `keysFor` in lib/puzzles.ts. Session 8b.
+  const needed = [...answer.replace(/[^a-z]/g, '')];
   const decoys = [...DECOY_POOL].filter((c) => !needed.includes(c));
 
   let seed = seedFrom(id);
@@ -181,14 +182,31 @@ let anagrams = 0;
 
 for (const l of [...levels, ...packLevels]) {
   const keys = keysFor(l.id, l.answer);
-  const missing = [...new Set(l.answer)].filter((c) => !keys.includes(c));
 
-  if (missing.length > 0) {
-    error(`level ${l.level} (${l.answer}) cannot be typed — keys are missing ${missing.join(', ')}`);
+  /**
+   * ── Counted, not set-membership (session 8b) ─────────────────────────────
+   * This used to ask whether every *distinct* letter of the answer had a key.
+   * `EYE` passed: there was an E, a Y, and that was the whole test. The player
+   * then had to work out that tapping the dimmed E again was allowed, and the
+   * owner — correctly — filed it as unplayable.
+   *
+   * The question is not "is this letter offered" but "is it offered as many
+   * times as the answer needs it". 77 of the 300 answers have a repeated
+   * letter, so the old check was blind to a quarter of the bank.
+   */
+  const short = [];
+  for (const letter of new Set(l.answer)) {
+    const need = [...l.answer].filter((c) => c === letter).length;
+    const have = keys.filter((c) => c === letter).length;
+    if (have < need) short.push(`${letter} (needs ${need}, has ${have})`);
+  }
+
+  if (short.length > 0) {
+    error(`level ${l.level} (${l.answer}) cannot be typed — ${short.join(', ')}`);
     unsolvable++;
   }
 
-  const decoyCount = keys.length - new Set(l.answer).size;
+  const decoyCount = keys.length - l.answer.length;
   if (decoyCount === 0) {
     warn(`level ${l.level} (${l.answer}): no decoy letters — the key row is an anagram of the answer`);
     anagrams++;
@@ -196,6 +214,15 @@ for (const l of [...levels, ...packLevels]) {
 
   if (l.answer.length < 3) warn(`level ${l.level}: answer "${l.answer}" is very short`);
   if (l.answer.length > 6) warn(`level ${l.level}: answer "${l.answer}" is ${l.answer.length} letters — the tile row narrows past 6`);
+
+  // One key per occurrence means a repeated-letter answer needs a wider row.
+  // Seven is the most anything in the bank asks for (`pepper`); past eight the
+  // caps get too narrow to hit reliably.
+  if (keys.length > 8) {
+    error(`level ${l.level} (${l.answer}) needs ${keys.length} keys — the row cannot fit them`);
+  } else if (keys.length > 7) {
+    warn(`level ${l.level} (${l.answer}) needs ${keys.length} keys — the row will be tight`);
+  }
 }
 
 if (unsolvable === 0 && anagrams === 0) console.log('  every level is typable, and none is a bare anagram');
