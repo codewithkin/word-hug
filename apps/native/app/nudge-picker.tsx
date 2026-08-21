@@ -18,8 +18,11 @@ import { effectiveToday, getCoins, getNudgeTier, setNudgeTier, spendCoins } from
  * Hug where the player is offered help, and the whole design of it is an
  * argument that help is not a failure:
  *
- * · **The first nudge is free** and says "Read it", not "Unlock". A category
- *   for the answer costs nothing, ever. The paid rung is the second one.
+ * · **Every rung costs coins** (1/2/3 since D-010). Session 8b tried a free
+ *   first rung, found nobody took it, printed the category on the board
+ *   instead — and that gave away the thing this sheet exists to sell, so 8c
+ *   reversed it. A priced rung at a zero balance still opens rather than
+ *   dying: it leads to overlay C, which is about what is still free.
  * · **The third rung says "Later", not "Locked".** It is dimmed because the
  *   nudges open in order, not because it is being sold. There is no price on
  *   it and no way to buy past the queue.
@@ -206,8 +209,10 @@ export default function NudgePicker() {
     setTier(next);
     setCoins(getCoins());
 
-    // The free rung stays open so the category can be re-read; a paid one has
-    // done its job and the player wants to be back at the board.
+    // Every rung is priced since D-010, so the sheet closes after each one —
+    // the player paid and wants to be back at the board, where nudgeNote
+    // repeats what was bought. The summary block below is for when they
+    // reopen this sheet later.
     if (cost > 0) router.back();
   }
 
@@ -227,8 +232,9 @@ export default function NudgePicker() {
         </View>
       </View>
 
-      {/* What the free rung bought, shown in place rather than as a toast.
-          The sheet stays open after tier 1 precisely so this can be read. */}
+      {/* What the taken rungs bought, shown again on reopen. The sheet closes
+          immediately after a purchase, so this is read on the way back in —
+          cumulative, matching nudgeNote under the board. */}
       {tier >= 1 && puzzle ? (
         <View className="rounded-[18px] bg-wh-surface-inset px-[14px] py-3 dark:bg-wh-answer-tile-active">
           <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-accent-text">
