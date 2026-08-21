@@ -83,17 +83,31 @@ const OFFERING_ID = 'default';
 let configured = false;
 
 /**
- * The public SDK key, from `app.json` → `expo.extra.revenueCatKey`.
+ * The public SDK key, from `app.json` → `expo.extra.revenueCatKeys`, chosen
+ * per platform.
  *
  * Public keys are designed to ship inside the binary — they can start a
  * purchase and read a customer, and nothing else. The **secret** `sk_` key is
- * the dangerous one and appears nowhere in this repo. It is in `extra` rather
- * than hard-coded here so the test key can be swapped for the live one without
- * touching code.
+ * the dangerous one and appears nowhere in this repo.
+ *
+ * RevenueCat issues one public key per app, and a project can hold several
+ * apps: the Test Store app (the `test_` key used until session 8c) and the
+ * live Google Play app (`goog_…`, app id `app05dac30f80`). The Android slot
+ * points at the Play app so store builds take real money; add the Apple
+ * public key under `ios` when the App Store app exists — until then iOS
+ * reports purchases as unavailable rather than configuring against the wrong
+ * platform's key.
  */
 function apiKey(): string | null {
-  const extra = Constants.expoConfig?.extra as { revenueCatKey?: string } | undefined;
-  const key = extra?.revenueCatKey;
+  const extra = Constants.expoConfig?.extra as
+    | { revenueCatKeys?: { android?: string; ios?: string } }
+    | undefined;
+  const keys = extra?.revenueCatKeys;
+  if (!keys) return null;
+
+  // Platform.select with an empty-string slot keeps the missing platform
+  // explicit in app.json instead of implied by absence.
+  const key = Platform.select({ android: keys.android, ios: keys.ios, default: '' });
   return typeof key === 'string' && key.length > 0 ? key : null;
 }
 
@@ -127,9 +141,9 @@ export async function configurePurchases(): Promise<boolean> {
     // device log and a small privacy leak.
     await Purchases.setLogLevel(__DEV__ ? LOG_LEVEL.VERBOSE : LOG_LEVEL.ERROR);
 
-    // The same key for both platforms today because the project is on the Test
-    // Store. When real App Store and Play apps are added, RevenueCat issues a
-    // key per app and this becomes a Platform.select.
+    // Android configures against the live Play Store app; iOS has no key yet
+    // (see `apiKey`), and `configurePurchases` returning false there is the
+    // correct, benign outcome until the App Store app exists.
     Purchases.configure({ apiKey: key });
     configured = true;
 
