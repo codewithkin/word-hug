@@ -1,91 +1,73 @@
 # System: Monetization
 
 **Owner of:** RevenueCat configuration, product and entitlement identifiers, the Nudge Coin ledger, and restore behaviour.
-**Status:** Draft
+**Status:** Rewritten end of session 8c to match what actually shipped. The previous
+version described the PRD's design (`pack_cozy_kitchen`, `wh_*` ids, `hug_club`,
+restorable coins), most of which was superseded during sessions 7–8b. Where this
+doc and the dashboard disagree, fix whichever is wrong — then fix the other one too.
 
 ---
 
 ## 1. Principles
 
-RevenueCat is the **sole source of truth for entitlements**. The app never grants an entitlement locally, never persists "user owns pack X" as its own boolean, and never trusts a local flag over `CustomerInfo`.
+RevenueCat is the **sole source of truth for entitlements**. Entitlements may **grant** and never **revoke** (D-008): an empty response means "offline", not "refunded". Results are folded into MMKV whenever they arrive; the game reads MMKV synchronously during render.
 
-Nudge Coins are the exception and the complication: RevenueCat tracks the *purchase* of coins, but *spending* them is a local operation it knows nothing about. Coins therefore need a local ledger (§4).
+Nudge Coins are deliberately different: **local only**. RevenueCat tracks the *purchase* of coins, but *spending* them needs a secret key and a backend, and this app has neither by design. A server-side balance would be a second source of truth for one number, where the second could not do the thing the number is for.
 
 ---
 
 ## 2. Identifiers
 
-Defined once, here. Any other file referencing these imports them from `apps/native/lib/purchases/ids.ts`.
+The app's copy lives in `apps/native/content/packs.ts` and `apps/native/lib/purchases.ts`; this table mirrors it. **Match the dashboard exactly — including spaces and capitalisation.** A typo surfaces as an empty shop or a silently locked pack, never as an error.
 
-### Entitlements
+### Apps
+
+| App | SDK key in `app.json` | Purpose |
+|---|---|---|
+| Test Store | *(removed in 8c)* | Sandbox purchases without spending money |
+| Word Hug (Play Store) — `app05dac30f80` | `extra.revenueCatKeys.android` = `goog_…` | Live Play billing |
+
+iOS has an empty key slot until an App Store app exists.
+
+### Entitlements (5)
 
 | Entitlement ID | Grants |
 |---|---|
-| `pack_cozy_kitchen` | Cozy Kitchen pack |
-| `pack_garden_stroll` | Garden Stroll pack |
-| `pack_fireside_read` | Fireside Read pack |
-| `pack_cup_of_comfort` | Cup of Comfort pack |
-| `pack_around_the_world` | Around the World pack |
-| `hug_club` | Full archive, weekly exclusive, weekly coin grant, badge — **built in v1, product not sold until Club ships** |
+| `Kitchen` | Kitchen Table pack |
+| `Outdoor pack` | Out of Doors pack |
+| `Creatures pack` | Creatures pack |
+| `Workshop pack` | The Workshop pack |
+| `Nightfall pack` | Nightfall pack |
 
-The Hug Bundle does **not** get its own entitlement. It is a product that grants all five `pack_*` entitlements. This means pack unlock logic has one code path regardless of how the pack was bought.
+There is no Hug Club and no archive entitlement — the archive was retired before launch (see `progress/05-known-issues.md`).
 
-### Products
+### Products (9)
 
 | Product ID | Type | Grants |
 |---|---|---|
-| `wh_bundle` | Non-consumable | All 5 `pack_*` |
-| `wh_pack_cozy_kitchen` … ×5 | Non-consumable | One `pack_*` |
-| `wh_coins_5` / `_15` / `_50` | Consumable | Coins (see §4) |
-| ~~`wh_club_monthly` / `wh_club_yearly`~~ | Auto-renewing sub | `hug_club` — **not created in v1** |
+| `wordhug_pack_kitchen` … `_nightfall` ×5 | Non-consumable | One pack entitlement each |
+| `wordhug_pack_bundle` | Non-consumable | All five — attached to every pack entitlement, **no entitlement of its own** |
+| `wordhug_coins_5` / `_15` / `_50` | Consumable | Coins, credited locally by `COIN_GRANTS` |
 
-### v1 scope
+### Offering
 
-**Hug Club is deferred** (PRD §5.4). The `hug_club` entitlement check, the archive lock, and all downstream logic **are built** in v1 — only the RevenueCat products and the storefront entry are withheld. Shipping the Club later is then a configuration change, not a feature build.
-
-Practical consequence: in v1 `hasClub()` always returns `false`, and the archive lock state is an informational "coming soon" rather than a paywall. Do not delete the code path.
-
-### Offerings
-
-| Offering | Shown where |
-|---|---|
-| `default` | Shop screen |
-| `welcome` | Second-visit offer — same `wh_bundle` product at a discounted price tier |
-
-The welcome discount is configured as a **price tier / promotional offering in RevenueCat**, never a hardcoded number in the app. The app displays `package.storeProduct.priceString`, so regional pricing works for free.
-
-### The welcome offer (relocated)
-
-Moved out of onboarding. Trigger and rules:
-
-| Property | Value |
-|---|---|
-| Trigger | First app open on a calendar day later than install day |
-| Placement | One screen after a solve — **never on the solve screen itself** |
-| Window | 48 hours from first display, then reverts to standard pricing |
-| Frequency | Once. Dismissed means gone. |
-| Dismissal | Full-size "Maybe later", equal visual weight to accept |
-
-State lives in `wh.prefs`: `onboarding.offerShown`, `onboarding.offerExpiresAt`.
-
-> With no analytics, the conversion rate of this offer is unmeasurable beyond aggregate store revenue. Design it right rather than planning to iterate.
+One offering, `default`, nine packages (`wordhug_packs_all` for the bundle plus one per product). Word Hug never shows a chooser; offerings exist for A/B tests there is nothing to test yet.
 
 ---
 
 ## 3. Entitlement checks
 
 ```ts
-// Single accessor. Nothing else reads CustomerInfo directly.
-hasPack(packId): boolean          // entitlements.active[`pack_${packId}`] != null
-hasClub(): boolean                // entitlements.active['hug_club'] != null
+// lib/storage owns the read; lib/purchases.ts is the only writer.
+ownsPack(packId): boolean   // reads packs.owned from MMKV — synchronous, offline-safe
 ```
 
 Rules:
 
-- `Purchases.configure()` runs in `+loading`, before any screen mounts.
-- `CustomerInfo` is cached by the RevenueCat SDK and readable offline. **A user who bought a pack and then goes offline must still be able to play it.** Never gate pack access on a live network check.
-- Subscribe to the customer-info listener so an expiring `hug_club` downgrades archive access without an app restart.
-- If `CustomerInfo` cannot be fetched on a cold, never-online install, default to **locked** for packs and **unlocked** for the free tier. A brand-new offline install has no purchases by definition.
+- `configurePurchases()` runs once at startup, before anything asks about ownership (`app/_layout.tsx`).
+- Entitlements are **folded into `packs.owned`** whenever the SDK reports them (startup, listener, after a purchase) and may grant, never revoke (D-008). A screen that awaited `getCustomerInfo()` before rendering would be blank on a train and would tell someone who paid that they had not.
+- The entitlement→pack map is derived from `content/packs.ts`, so adding a pack cannot leave it half-wired.
+- If the SDK is unavailable (web, Expo Go) or not configured, every purchase call degrades to a benign value; storage holds the last known truth.
 
 ---
 
@@ -101,60 +83,40 @@ Every mutation appends a `LedgerEntry`. The balance is authoritative; the ledger
 
 ### Grants
 
-| Reason | Amount | Trigger | Idempotency key |
+| Reason | Amount | Trigger | Where |
 |---|---|---|---|
-| `install_grant` | 3 | First launch | `'install'` |
-| `weekly_grant` | 1 | First app open on or after Monday local | ISO week string |
-| `club_grant` | 2 | Weekly, while `hug_club` is active | ISO week string + `'club'` |
-| `purchase` | 5/15/50 | RevenueCat purchase completes | Store transaction id |
-| `restore` | see §5 | Restore purchases | Store transaction id |
+| Install grant | 3 (`INSTALL_COIN_GRANT`) | First launch, keyed on a stored install date | `lib/storage/index.ts` |
+| Daily coin | 1 (`DAILY_COIN_GRANT`) | First daily solve of the local day — granted **before** the toast that announces it | `recordSolve` |
+| Coin purchase | 5 / 15 / 50 | Store confirms; credited from `COIN_GRANTS[pkg.product.identifier]`, only in `buy()` | `lib/purchases.ts` |
 
-Before applying any grant, check the ledger for an entry with the same idempotency key. This is what prevents double-granting when a user opens the app twice on a Monday, or taps Restore repeatedly.
+There is no weekly grant and no club grant — those belonged to the unbuilt Hug Club. The accepted risk at `COIN_GRANTS`: if the process dies between the store confirming and the app crediting, the money is taken and the coins are not granted. If a player ever reports it, restore the virtual currency rather than adding a retry.
 
 ### Spending
 
-```
-spendCoin(puzzleId, tier):
-  if nudges[puzzleId] >= tier: return ALREADY_OWNED    // idempotent, free
-  if tier != nudges[puzzleId] + 1: return OUT_OF_ORDER // tiers unlock in sequence
-  if balance < 1: return INSUFFICIENT
-  balance -= 1
-  nudges[puzzleId] = tier
-  ledger.push({ delta: -1, reason: 'nudge', ref: puzzleId })
-```
+Spending happens in `app/nudge-picker.tsx` against `spendCoins`, with prices from `NUDGE_RUNGS`. Since D-010 the ladder is **1 / 2 / 3** — category, first letter, whole answer. Tier integers are storage keys against puzzle ids and were never renumbered through any of this.
 
-Requirements:
-
-- The whole operation is synchronous and guarded by an in-flight flag so rapid double-taps cannot double-spend.
-- Balance can never go below zero — enforced by the check, and asserted in tests.
-- Re-opening a puzzle shows previously purchased nudges for free. A player never pays twice for the same hint.
-- Max 3 nudges per puzzle, enforced by the tier sequence.
+- Tiers unlock in sequence; a rung not yet reached reads "Later", never "Locked".
+- Re-opening a puzzle shows previously purchased nudges for free — a player never pays twice for the same hint.
+- Balance can never go below zero: `spendCoins` refuses before deducting.
 
 ### Zero-balance flow
 
-Tapping a nudge with a zero balance opens a **quiet bottom sheet**, not a full-screen paywall: the three coin packs, current price, and a plain "Not now." It must not appear during or after a solve, and it must not be the first thing a new user sees.
+A priced rung at a zero balance routes to **overlay C (`/zero-coin`)**, a quiet sheet about what is still free — never a full-screen paywall, never shown during or after a solve. It uses `router.replace` so backing out does not land the player on the picker again with an empty wallet.
 
 ---
 
 ## 5. Restore purchases
 
-`Purchases.restorePurchases()` from Settings and from a quiet link on the Shop screen.
+`restore()` in `lib/purchases.ts`, from Settings and the restore-result screen.
 
 | Item | Restored |
 |---|---|
 | Packs, Bundle | Yes — automatic via entitlements |
-| Hug Club | Yes, if the subscription is still active (post-v1) |
-| Coins | **Yes, in full** — decided |
+| Coins | **No.** Consumables are not restorable purchases, by store design — they exist to be used up |
 
-Coin restore procedure:
+The restore screen says so in as many words rather than implying a full recovery. (This reverses the PRD's "coins restorable in full"; the ledger machinery it required was never built.)
 
-1. Read non-subscription transactions from `CustomerInfo`.
-2. For each coin transaction not already in the ledger (keyed by transaction id), grant the full amount with `reason: 'restore'`.
-3. Prior spend is ignored — the user gets back everything they ever bought.
-
-This is exploitable by reinstalling, but the ceiling is a few dollars per user and the alternative — telling a paying customer their coins are gone — is precisely the kind of punishment the product promises not to inflict.
-
-Restore always produces visible feedback: what was restored, or a warm "nothing to restore on this account" — never silence.
+Restore always produces visible feedback: what came back, or a warm "nothing to restore" — never silence.
 
 ---
 
@@ -167,7 +129,7 @@ Binding placement rules derived from PRD §1.1 Principle 3 and 4.
 | Puzzle screen | Only the small nudge button. No prices, no badges, no packs. |
 | Solve celebration | **Never.** No offers, no "unlock more," nothing. |
 | Screen after a solve | Permitted, quiet, dismissible |
-| Archive, on tapping a locked date | Permitted — contextual paywall for `hug_club` |
+| Archive | The archive was retired; there is no locked-date paywall |
 | Pack list | Permitted — this is a store surface |
 | Shop | Obviously |
 | Onboarding | **Never.** No prices, no offers, no shop entry anywhere in the flow. |
@@ -181,31 +143,25 @@ Binding placement rules derived from PRD §1.1 Principle 3 and 4.
 
 Recorded here because they shape build priority, not just pricing.
 
-- **Packs are anchors, not products.** 5 × $1.99 = $9.95 against a $6.99 bundle. Essentially nobody buys a single pack. Don't invest engineering effort in merchandising individual packs.
-- **v1 has no recurring revenue at all.** With Hug Club deferred, every product is a one-time purchase. LTV per paying user is capped at roughly **$7** — Bundle plus occasional coins. Model the business on that number before committing a dollar to paid acquisition.
-- **Coins are the only repeatable revenue in v1**, and the product principles forbid pushing hints. Accept that ARPU will be low by design. The growth story is retention and word of mouth, not monetisation depth.
-- **Revenue is essentially unmeasurable in-app.** No analytics means the only signal is App Store Connect / Play Console revenue against Expo Insights installs — a single crude conversion ratio, with no visibility into where in the funnel anything happens.
-- **The deferred Club is a bet that the archive accrues value.** If retention is poor, the archive never becomes worth $1.49/mo and there is no second revenue stream to add later. Watch this.
+- **Packs are anchors, not products.** 5 × £1.99 = £9.95 against a £7.99 bundle. Essentially nobody buys a single pack. Don't invest engineering effort in merchandising individual packs.
+- **No recurring revenue at all.** Every product is a one-time purchase; the Club was never built and the archive retired. LTV per paying user is capped at roughly **£8–15** — Bundle plus occasional coins.
+- **Coins are the only repeatable revenue**, and the product principles forbid pushing hints — the ladder is opt-in, quiet, and priced so the daily coin covers roughly one hint a day (D-010). Accept that ARPU will be low by design.
+- **Revenue is essentially unmeasurable in-app.** No analytics means the only signal is Play Console revenue against installs.
 
 ---
 
 ## 8. Testing requirements
 
-- Sandbox purchase of each product grants the correct entitlements
-- Buying the Bundle unlocks all five packs through the same code path as buying them individually
+- Buying each product grants the right thing: five packs unlock their own levels only, the bundle unlocks all five, coin purchases raise the balance by exactly 5/15/50
 - Offline launch after a prior purchase still unlocks owned packs
-- Expiring `hug_club` re-locks the archive without an app restart
-- Weekly coin grant fires exactly once per ISO week across multiple app opens
-- Rapid triple-tap on a nudge spends exactly one coin
-- Restore twice in a row grants coins once
+- Rapid triple-tap on a rung spends exactly one coin
+- Restore brings packs back and **coins never**
 - Balance never goes negative under any sequence of operations
 - No price or offer renders at any point during onboarding
-- The welcome offer appears on the second visit only, once, and never on a solve screen
 
 ---
 
 ## 9. Open questions
 
-- Should the club's 2 coins/week accumulate indefinitely, or cap? (Post-v1.)
-- Family Sharing on iOS for the Bundle — enable or not?
-- Does the 48-hour welcome-offer window need a visible countdown? A timer would be the most on-brand-violating element in the app; recommend stating the deadline as plain text, or omitting it entirely.
+- Family Sharing on iOS for the Bundle — enable or not? (When iOS exists.)
+- Is one hint a day the right economy once real players arrive, or does the daily coin need to be 2?

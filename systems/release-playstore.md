@@ -17,12 +17,20 @@ billing, and the **production** release.
 
 | | Status |
 |---|---|
-| App code | Complete, playing, purchases simulated |
-| RevenueCat | Configured on the **Test Store** — 9 products, 5 entitlements, 1 offering |
+| App code | Complete, playing, purchases working |
+| RevenueCat | **Play Store app live** (`app05dac30f80`) — 9 products imported from Play Console, bundle attached to all five entitlements, default offering complete. Android SDK key swapped to `goog_…` in session 8c |
 | `eas.json` | `development`, `preview`, `production` profiles all present |
 | `app.json` | `com.codewithkin.wordhug`, version `1.0.0`, `runtimeVersion: "1"` |
 | Privacy policy | https://wordhug.gamesforstrangers.lol/privacy |
 | Terms | https://wordhug.gamesforstrangers.lol/terms |
+
+> **Session 8c note:** the first EAS production build errored because
+> `pnpm-lock.yaml` had not been committed after restoring `shadcn`
+> (`ERR_PNPM_OUTDATED_LOCKFILE`; CI installs with `--frozen-lockfile`). It also
+> built from a dirty tree — the `*` on the commit SHA means uncommitted changes
+> rode along. Rule for every build: **commit the lockfile with any
+> `package.json` edit, push, then build from a clean tree**, and check the
+> build page reports your pushed SHA without an asterisk.
 
 `appVersionSource: "remote"` and `autoIncrement: true` on the production
 profile mean **EAS owns the Android `versionCode`**. Do not set it by hand in
@@ -134,6 +142,14 @@ pack for £1.99.
 Finally, swap the SDK key in `apps/native/app.json` → `expo.extra.revenueCatKey`
 from the `test_` key to the **Google Play public key** RevenueCat issues for the
 new app.
+
+> **Done, session 8c** — including by you, on the dashboard side: products
+> created straight in Play Console and imported into RevenueCat (safer than
+> typing ids twice), entitlements extended to cover both stores' products, and
+> the bundle attached to all five entitlements. The code side is done too:
+> keys now live under `extra.revenueCatKeys` per platform
+> (`android` = `goog_…`, `ios` empty until an App Store app exists). What
+> remains is §5: build, submit, add a licence tester, buy something.
 
 ---
 
