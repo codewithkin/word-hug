@@ -257,3 +257,79 @@ first only evaluates plugins; the second runs the image and manifest writers, wh
 where §7.1 lived. `00-START-HERE.md` recommended the first as the cheap early check —
 it is, but it is not a substitute. **Run `prebuild --clean` itself.** It takes seconds
 and it is the only thing that proves the config survives contact with both platforms.
+
+---
+
+## 8. Session 8b — the audit, and what was removed
+
+The first dependency audit since the project started. Method: walk every source
+file, collect what is actually imported, diff against what is declared.
+
+### Removed from `apps/native` — native code, so this is real binary size
+
+These nine are **autolinked and compiled into the APK whether or not a single
+line of JavaScript imports them.** That is where app size actually comes from —
+an unused pure-JS package costs a few KB of bundle; an unused Expo module costs
+its whole native library.
+
+| Package | Note |
+|---|---|
+| `expo-audio` | Sound is a *setting* in this app, not a feature. Nothing ever played a file. |
+| `expo-image` | The largest of the nine — bundles SDWebImage on iOS and Glide on Android. The app uses React Native's own `Image`. |
+| `expo-application` | Never imported. |
+| `expo-secure-store` | There is nothing secret: no account, no token, no key. |
+| `expo-store-review` | No review prompt exists, and one would need a decision first. |
+| `expo-web-browser` | `settings.tsx` opens links with `Linking`. |
+| `expo-localization` | i18n is not wired; see below. |
+| `expo-network` | Referenced only in a *comment* in `offline-notice.tsx` describing a future design. |
+| `expo-insights` | Analytics. PRD §10 says there is no analytics pipeline and never will be. |
+
+### Removed from `apps/native` — JavaScript only
+
+- `@gorhom/bottom-sheet` — referenced only in a comment in `components/sheet.tsx`
+  explaining **why the app does not use it**. The app has its own `Sheet`.
+- `i18next`, `react-i18next` — installed in session 2, never wired. The
+  `category.*` keys in the bank are i18n keys with a hand-written map standing
+  in for a resource bundle. Reinstall both when that map is deleted.
+- `dotenv`, `@word-hug/env` — the native app reads no environment variables.
+  The RevenueCat key lives in `app.json` → `expo.extra`.
+- `tailwind-variants` — only importer was `components/container.tsx`, which was
+  itself unused Expo-template boilerplate.
+
+### Moved to `devDependencies`
+
+- `expo-dev-client` — a large native module with no purpose in a release build.
+
+### Kept despite showing as "unused by import"
+
+Do not remove these on a second audit. Each is required implicitly:
+
+| Package | Why it stays |
+|---|---|
+| `react-native-screens` | Peer requirement of expo-router / react-navigation |
+| `react-native-worklets` | Required by Reanimated 4 |
+| `react-native-web`, `react-dom`, `@expo/metro-runtime` | Expo's web target |
+| `expo-status-bar`, `expo-system-ui`, `expo-linking`, `expo-asset` | Expo internals; also transitive |
+| `expo-build-properties`, `expo-font`, `expo-router`, `expo-splash-screen`, `expo-notifications` | Config plugins in `app.json` — never imported, always needed |
+| `expo-updates` | Unused in JS, but `eas.json` defines three channels and `app.json` has an `updates` block. Removing it changes EAS behaviour, and this project has already lost a day to a fingerprint mismatch. Leave it. |
+| `tailwindcss` | uniwind's build step |
+
+### Removed elsewhere
+
+- `packages/ui`: **`shadcn` was a runtime `dependency`.** That is the CLI, used
+  via `npx shadcn add`, and it was being installed into every environment.
+  Also dropped `react-dom`, which the consuming app provides.
+- `packages/ui`: fourteen unused shadcn components tombstoned. The package
+  exports per file, so they were never *bundled* — but they were installed,
+  typechecked and linted on every run. `apps/web` imports exactly three:
+  `button`, `dropdown-menu`, `sonner`.
+- `apps/web`: `sonner` and `dotenv`, both provided transitively.
+- `apps/native`: `components/container.tsx` and `components/theme-toggle.tsx`,
+  unused template boilerplate.
+
+### Not a bundle problem, but a build-context one
+
+`designs/` is 8.8 MB across 140 HTML files at the repo root. Metro never sees it
+(nothing imports it) but Docker would have shipped it to the daemon on every
+build. It is in `.dockerignore`, along with `plans/`, `progress/`, `systems/`,
+`scripts/` and `apps/native`.
