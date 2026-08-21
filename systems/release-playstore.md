@@ -245,9 +245,11 @@ review takes a few days; later ones are usually hours.
 
 ## 8. iOS, when you get there
 
-Broadly the same shape with two differences worth knowing now:
+Has its own guide now, same shape as this one and with the App Store Connect
+questionnaire answered question-by-question: `systems/release-appstore.md`.
+Two differences worth knowing before you open it:
 
+- The **Paid Applications Agreement** (banking + tax) gates product creation
+  and sandbox testing — start it on day one
 - Products can be created **before** the first upload, unlike Play — but each
   needs a screenshot and a review note or it sits in "Missing Metadata"
-- You need an **In-App Purchase Key** (`.p8`) plus an App Store Connect API key
-  for RevenueCat, not a service account
