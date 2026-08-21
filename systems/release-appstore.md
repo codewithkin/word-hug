@@ -78,10 +78,15 @@ EAS manages certificates, provisioning profiles and device registration during
 `eas build`; the first iOS build walks you through signing in to Apple. Inspect
 later with `npx eas credentials`.
 
-`expo-notifications` is configured in `app.json`, so the first build also
-registers an **APNs auth key** with Apple — accept the prompt and let EAS store
-it. RevenueCat does **not** need this key; its push campaigns are unrelated to
-our notification scheduling.
+**No push setup exists here, deliberately.** Every notification Word Hug sends
+is scheduled locally on-device (`lib/notifications.ts` — one daily reminder,
+armed two weeks ahead). There is no server, no device token, and no call to
+`getExpoPushTokenAsync` anywhere, so iOS local notifications need **no APNs
+key and no Push Notifications entitlement**, and Android needs no Firebase.
+EAS may still offer to register push credentials because it sees
+`expo-notifications` installed — decline; there is nothing behind the offer.
+If a server-driven notification ever ships, that decision reopens, along with
+a privacy-page update.
 
 What you *do* need to mint by hand, for RevenueCat in §4:
 
@@ -92,6 +97,17 @@ What you *do* need to mint by hand, for RevenueCat in §4:
   One such key serves every app in the account; download once.
 
 Both go into RevenueCat's dashboard, never into this repo.
+
+> **Shared-team certificate cap.** Apple allows only ~2–3 iOS Distribution
+> certificates per team. If the account already holds them (common on company
+> teams like Wyven Technologies), EAS cannot generate a new one, and answering
+> "no" leaves it asking for a `.p12` — the file holding the private key of an
+> existing cert, owned by whoever created it. Three ways out, in order of
+> preference: reuse a cert another app under *your* Expo account built with
+> (`npx eas credentials` lists server-stored ones); request a `.p12` export
+> plus password from a teammate who owns one; or revoke a provably dead cert
+> and let EAS generate fresh. Revocation does not kill shipped apps — Apple
+> re-signs store builds — it only stops future signing with that cert.
 
 ---
 
