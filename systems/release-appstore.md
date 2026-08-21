@@ -272,9 +272,15 @@ surface in review.
 
 ### 6.6 Export compliance (asked once per build)
 
-*"Does this app use encryption?"* → Yes → *"exempt from export documentation
+*"Does your app use encryption?"* → Yes → *"exempt from export documentation
 requirements?"* → Yes (HTTPS via standard OS libraries only; no proprietary
 crypto).
+
+Verified against the dependency surface in session 8c: every network call is
+standard TLS; nothing in `apps/native` imports or implements a cipher; MMKV is
+created without an `encryptionKey`, so its bundled-but-unused AES never runs —
+and even if enabled later, AES is a standard algorithm and the answer holds.
+The `false` below is therefore truthful, not hopeful.
 
 To stop Apple asking on every subsequent build, add to `app.json`:
 
