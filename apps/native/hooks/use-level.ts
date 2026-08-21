@@ -10,7 +10,7 @@ import {
   packLevelKey,
   type Level,
 } from '@/lib/levels';
-import { categoryChip, nudgeNote, type NudgeTier } from '@/lib/nudges';
+import { nudgeNote, type NudgeTier } from '@/lib/nudges';
 import { clueWords, compoundsFor, correctPositions, keysFor } from '@/lib/puzzles';
 import {
   advanceStreakToday,
@@ -73,8 +73,6 @@ export interface LevelGame {
   coins: number;
   /** Slots the last wrong guess got right. Empty until one is made. */
   correctAt: ReadonlySet<number>;
-  /** "a kind of bird" — printed on the board, always. Null before load. */
-  category: string | null;
   canSubmit: boolean;
   shakeTrigger: number;
   press: (letter: string) => void;
@@ -249,7 +247,6 @@ export function useLevel(n: number, packId?: string): LevelGame {
     compounds,
     coins,
     correctAt,
-    category: level ? categoryChip(level) : null,
     canSubmit: typed.length === length && length > 0,
     shakeTrigger,
     press,

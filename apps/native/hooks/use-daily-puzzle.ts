@@ -12,7 +12,7 @@ import {
   recordSolve,
 } from '@/lib/storage';
 import { isFirm, keyHaptic, solveHaptic, wrongGuessHaptic } from '@/lib/feedback';
-import { categoryChip, nudgeNote, type NudgeTier } from '@/lib/nudges';
+import { nudgeNote, type NudgeTier } from '@/lib/nudges';
 import {
   clueWords,
   compoundsFor,
@@ -81,13 +81,6 @@ export interface DailyGame {
   shakeTrigger: number;
   /** Slots the last wrong guess got right. Empty until one is made. */
   correctAt: ReadonlySet<number>;
-  /**
-   * "An animal" — printed on the board, always.
-   *
-   * Null past the end of the bank, where `puzzle` is null and the screen
-   * redirects to `/caught-up` instead of rendering a board.
-   */
-  category: string | null;
   press: (letter: string) => void;
   backspace: () => void;
   submit: () => void;
@@ -267,7 +260,6 @@ export function useDailyPuzzle(): DailyGame {
     canSubmit: typed.length === length && length > 0,
     shakeTrigger,
     correctAt,
-    category: puzzle ? categoryChip(puzzle) : null,
     press,
     backspace,
     submit,

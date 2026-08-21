@@ -63,7 +63,6 @@ export default function PackLevelScreen() {
     canSubmit,
     shakeTrigger,
     correctAt,
-    category,
     press,
     backspace,
     submit,
@@ -135,7 +134,6 @@ export default function PackLevelScreen() {
 
         <GameBoard
           clues={clues}
-          category={category}
           length={level.answer.length}
           typed={typed}
           keys={keys}

@@ -214,32 +214,36 @@ group('rule 1 — nothing that punishes', () => {
     'the difficulty model needs the signal; the player must not pay for it');
 });
 
-group('help that is always on', () => {
+group('help that stayed free, and help that got sold', () => {
   /**
-   * ── Session 8b ──────────────────────────────────────────────────────────
-   * The owner could not solve the early levels. Two aids went in, both in the
-   * shared board so no screen can miss them, and both are the kind of thing a
-   * later refactor quietly drops.
+   * ── Session 8b, revised session 8c ──────────────────────────────────────
+   * Two aids went into the shared board so no screen could miss them. One
+   * survived as always-on feedback; the other gave away the thing the coin
+   * shop sells, and became a paid rung again (D-010). Both outcomes are
+   * asserted, because each is exactly the kind of thing a refactor quietly
+   * flips back.
    */
   const board = code('components/game-board.tsx');
   const nudges = code('lib/nudges.ts');
+  const puzzleScreens = ['app/daily.tsx', 'app/level/[n].tsx', 'app/pack-level/[id]/[n].tsx'];
 
-  ok('the board prints the category',
-    board.includes('{category}'),
-    'a free hint behind a ? button next to a coin balance is not a free hint');
-  ok('the category is no longer sold as a rung',
-    !/tier: 1,/.test(nudges),
-    'it is on the board now; offering it too would be charging for scenery');
+  ok('the board does not print the category',
+    !/\{category\}/.test(board) && !/category\?:/.test(board),
+    'the chip undercut the only coin sink; it is a paid rung again (D-010)');
+  ok('the category is a priced rung once more',
+    /tier: 1,[^\n]*cost: 1/.test(nudges),
+    'a currency with one remaining sink is not much of a currency');
   ok('tier numbering was not shifted',
-    nudges.includes('tier: 2,') && nudges.includes('tier: 3,'),
+    ['tier: 1,', 'tier: 2,', 'tier: 3,'].every((t) => nudges.includes(t)),
     'nudges are stored by integer against puzzle ids — renumbering re-reads history');
-  ok('every puzzle screen passes the category through',
-    ['app/daily.tsx', 'app/level/[n].tsx', 'app/pack-level/[id]/[n].tsx']
-      .every((f) => code(f).includes('category={category}')),
-    'daily, the free run and the packs must all show it');
+  ok('rung prices ascend 1, 2, 3 with no free entry',
+    JSON.stringify([...nudges.matchAll(/cost: (\d+)/g)].map((m) => Number(m[1]))) === '[1,2,3]',
+    'install coins plus the daily coin should buy roughly one hint a day');
+  ok('no puzzle screen passes the category to the board',
+    puzzleScreens.every((f) => !code(f).includes('category=')),
+    'the prop chain was removed; a leftover prop renders nothing but lies');
   ok('every puzzle screen passes position feedback through',
-    ['app/daily.tsx', 'app/level/[n].tsx', 'app/pack-level/[id]/[n].tsx']
-      .every((f) => code(f).includes('correctAt={correctAt}')),
+    puzzleScreens.every((f) => code(f).includes('correctAt={correctAt}')),
     'same three screens, same reason');
   ok('feedback describes the submitted guess, not the tiles',
     code('hooks/use-level.ts').includes('setCorrectAt(correctPositions('),

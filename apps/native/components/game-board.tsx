@@ -23,16 +23,17 @@ import { Appear, Breathe, Land, STAGGER, Shake } from '@/components/motion';
  * Only state and handlers. Every dimension, colour and animation timing lives
  * here, which is the property that stopped three copies drifting apart.
  *
- * ── Session 8b: two aids, in the core ─────────────────────────────────────
- * The owner could not solve the early levels, and asked for both of these to
- * be on everywhere rather than tuned per screen. Putting them here is what
- * makes "everywhere" true — daily, the free run and the packs all render this
+ * ── Session 8b: the aid that stayed ───────────────────────────────────────
+ * The owner could not solve the early levels, and asked for help to be on
+ * everywhere rather than tuned per screen. Putting it here is what makes
+ * "everywhere" true — daily, the free run and the packs all render this
  * component, so none of them can drift out of step.
  *
- * · **The category is always printed.** It used to be nudge tier 1, free but
- *   hidden behind a `?` button that reads as "this will cost you". A free hint
- *   nobody taps is not a free hint. It is now a line above the clues, and the
- *   nudge ladder no longer sells it.
+ * A second aid printed the category on every board. It was reverted in 8c: it
+ * gave away the thing tier 1 of the hint ladder sells, and a currency with one
+ * remaining sink is not much of a currency. The category is a paid rung again
+ * — see `lib/nudges.ts`.
+ *
  * · **Correct-position letters go teal after a wrong guess.** Feedback rather
  *   than a hint: it tells you about the guess you made, not about the answer
  *   you have not made. Teal is `--color-wh-accent`, the existing secondary —
@@ -51,13 +52,6 @@ export { IN as GAME_BOARD_TIMINGS };
 
 export interface GameBoardProps {
   clues: string[];
-  /**
-   * "a kind of bird" — printed above the clues, always.
-   *
-   * Optional so a board with no category (the onboarding tutorial) can omit
-   * the line entirely rather than render an empty one.
-   */
-  category?: string | null;
   /** How many letters the answer has. */
   length: number;
   /** What is in the tiles right now, uppercase. */
@@ -89,7 +83,6 @@ export interface GameBoardProps {
 
 export function GameBoard({
   clues,
-  category,
   length,
   typed,
   keys,
@@ -112,18 +105,6 @@ export function GameBoard({
           Each carries the dashed "?" slot, which is the Daily screen's own
           detail and the visual promise that one word fills all three. */}
       <View className="flex-1 justify-center gap-3 px-[22px] pt-[6px]">
-        {/* The category. Small, quiet, above the clues — it is context, not an
-            instruction, and it must not compete with the three words. */}
-        {category ? (
-          <Appear delay={IN.clues - 40} className="items-center pb-[2px]">
-            <View className="rounded-wh-pill bg-wh-chip-surface px-[14px] py-[5px]">
-              <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-chip-text">
-                {category}
-              </Text>
-            </View>
-          </Appear>
-        ) : null}
-
         {clues.map((clue, i) => (
           <Appear key={clue} index={i} delay={IN.clues}>
             <Chunky

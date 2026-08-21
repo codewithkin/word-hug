@@ -202,7 +202,32 @@ tier 2 and `nextRung` finds the next tier above the current one rather than
 adding one.
 
 Correct-position letters also turn teal after a wrong guess. That is feedback
-about the guess just made, not a hint about the answer — but it is strong, and
+about the guess just made, not a hint about the answer �?" but it is strong, and
 the owner chose it ungated against a recommendation to gate it behind two wrong
 guesses. With six keys and a four-letter answer it makes most levels
 brute-forceable in about three tries. Reversing it is one line in each hook.
+
+> **The printed-category half of this decision is SUPERSEDED BY D-010.** The
+> teal feedback above stands.
+
+---
+
+## D-010 �?" The category hint is a product, so it is sold
+
+**Session 8c.** Reverses half of D-009 within a day of that session ending.
+
+D-009 moved tier 1 of the hint ladder onto every board as printed scenery,
+arguing a free hint nobody taps was hidden rather than free. The diagnosis was
+right; the fix removed most of what coins are **for**. A currency with one
+remaining sink (the first letter) is not much of a currency, and the shop exists
+to sell it. The owner reversed it on playing the result.
+
+The category is a rung again, now priced 1 coin, with the ladder at 1/2/3
+against 3 install coins plus 1 daily coin �?" roughly one hint a day, or a saved
+whole answer every third day. Tier numbering stayed untouched (see D-009's
+storage argument). The teal position feedback, the other half of D-009, stays
+free: it is about the guess you made, not the answer you have not.
+
+**Rule:** nothing the ladder sells may be rendered for free anywhere else in
+the app. Guarded by six checks in `scripts/daily-loop-check.mjs` under *help
+that stayed free, and help that got sold*.

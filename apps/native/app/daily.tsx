@@ -95,7 +95,6 @@ export default function DailyPuzzle() {
     canSubmit,
     shakeTrigger,
     correctAt,
-    category,
     press,
     backspace,
     submit,
@@ -203,7 +202,6 @@ export default function DailyPuzzle() {
           <>
             <GameBoard
               clues={clues}
-              category={category}
               length={length}
               typed={typed}
               keys={keys}
