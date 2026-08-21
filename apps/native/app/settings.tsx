@@ -45,7 +45,15 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
  * ──────────────────────────────────────────────────────────────────────────
  */
 
-const WEB = 'https://wordhug.app';
+/**
+ * The site. Privacy and terms live here, and both stores require them at a
+ * public URL.
+ *
+ * Session 8b: was `https://wordhug.app`, a domain nobody owns. A store
+ * reviewer following a settings link to a parked page is a rejection, and it
+ * would have been found by them rather than by us.
+ */
+const WEB = 'https://wordhug.gamesforstrangers.lol';
 
 /** The card every section sits in. */
 function Card({ children }: { children: ReactNode }) {
