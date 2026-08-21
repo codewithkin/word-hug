@@ -1,48 +1,30 @@
-import { router } from 'expo-router';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { OfflineBanner } from '@/components/notice';
-import { PuzzleGround } from '@/components/puzzle-ground';
-
 /**
- * ── Overlay F · Offline notice ────────────────────────────────────────────
- * Built from `designs/extracted/f-offline-notice-light.html` and
- * `f-offline-notice-dark.html`, read in full, both themes.
+ * Removed in session 8b — orphaned. `git rm` this file.
  *
- * The banner itself is `components/notice.tsx` — a component rather than a
- * screen, because that is what it will be: the Shop (15) and the Pack List
- * (12) mount it at the top of their own content when `expo-network` reports no
- * connection. It is not a route in the product, and it never navigates.
+ * It was a standalone route reachable only from the `__DEV__` scaffolding link
+ * row on the daily screen, which was deleted this session at the owner's
+ * request. With the row gone, `scripts/nav-check.mjs` correctly reported it as
+ * unreachable from /home.
  *
- * ── Recorded divergence ───────────────────────────────────────────────────
- * The design draws this banner over the Shop screen — a HUG BUNDLE card and a
- * short owned-packs list. **Screen 15 is not built**, so this route puts the
- * banner on the plain puzzle ground instead of on a hand-copied approximation
- * of a screen that does not exist yet. Two of the Shop card's colours
- * (#FFF9EF/#1A0F38 with #E0C795/#0C0718 under it) do not correspond to any
- * single token pair, and inventing them here — in a throwaway backdrop, on a
- * screen nobody has agreed the shape of — is how a wrong value gets copied
- * into the real screen later.
+ * Every one of these seven routes had already been superseded by an inline
+ * implementation on the screen that owns the moment:
  *
- * So: the banner is exact and the thing behind it is not the design's. When
- * the Shop is built, this route goes and the Shop mounts the banner itself.
- * ──────────────────────────────────────────────────────────────────────────
+ *   /celebration     → <SolveCelebration> over the real board in daily.tsx
+ *   /near-miss       → <GuessNote tone="close"> under the board
+ *   /wrong-guess     → <GuessNote> plus the shake and the haptic
+ *   /solved-today    → <SolvedBoard> in daily.tsx
+ *   /offline-notice  → <OfflineBanner> mounted by shop.tsx
+ *   /pack-puzzle     → /pack-level/[id]/[n]
+ *   /token-probe     → a token debugging tool, not a screen
+ *
+ * They were built in sessions 3 and 4 as the design-reference versions the
+ * inline ones were written from, which was the right call then. They have been
+ * dead weight in the bundle since the inline versions landed; the link row was
+ * the only thing keeping them nominally alive.
+ *
+ * The reasoning in the originals is not lost — it moved into the components
+ * that replaced them. See git history for the full text.
  */
-
-export default function OfflineNoticeRoute() {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View className="flex-1 bg-wh-ground">
-      <PuzzleGround />
-
-      <View className="flex-1" style={{ paddingTop: insets.top }}>
-        {/* The design pins the banner 100px from the top of the frame, which
-            is ~46px below the status bar on the phone it was drawn at. */}
-        <View className="h-[46px]" />
-        <OfflineBanner onDismiss={() => router.back()} />
-      </View>
-    </View>
-  );
+export default function Removed() {
+  return null;
 }

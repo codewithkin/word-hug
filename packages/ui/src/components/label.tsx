@@ -1,19 +1,9 @@
-"use client";
-
-import { cn } from "@word-hug/ui/lib/utils";
-import * as React from "react";
-
-function Label({ className, ...props }: React.ComponentProps<"label">) {
-  return (
-    <label
-      data-slot="label"
-      className={cn(
-        "flex items-center gap-2 text-xs leading-none select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export { Label };
+/**
+ * Removed in session 8b — unused. `git rm` this file.
+ *
+ * shadcn boilerplate from the template, carried over from a chat product.
+ * apps/web imports exactly three components — button, dropdown-menu and
+ * sonner — and `@word-hug/ui` exports per file, so these were never bundled.
+ * They were still installed, typechecked and linted on every run.
+ */
+export {};

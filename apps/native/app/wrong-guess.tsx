@@ -1,90 +1,30 @@
-import { router } from 'expo-router';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { DailyAltHeader, DailyEyebrow, StreakNote } from '@/components/daily-chrome';
-import { Appear } from '@/components/motion';
-import { GuessNote } from '@/components/notice';
-import {
-  AnswerRow,
-  BOARD_TIMINGS,
-  ClueStack,
-  LetterKeys,
-  NudgeButton,
-} from '@/components/puzzle-board';
-import { PuzzleGround } from '@/components/puzzle-ground';
-
 /**
- * ── 09 Daily · Wrong guess ────────────────────────────────────────────────
- * Built from `designs/extracted/09-wrong-guess-light.html` and
- * `09-wrong-guess-dark.html`, read in full, both themes.
+ * Removed in session 8b — orphaned. `git rm` this file.
  *
- * **This is the screen rule 1 lives or dies on**, so it is worth saying
- * precisely what the design does and does not do when a player gets it wrong.
+ * It was a standalone route reachable only from the `__DEV__` scaffolding link
+ * row on the daily screen, which was deleted this session at the owner's
+ * request. With the row gone, `scripts/nav-check.mjs` correctly reported it as
+ * unreachable from /home.
  *
- * What changes: one sentence appears on a soft pill under the keys — "Not this
- * one — try another". That is all.
+ * Every one of these seven routes had already been superseded by an inline
+ * implementation on the screen that owns the moment:
  *
- * What does not change, and must never: the typed word stays in the tiles
- * exactly as it was, so nothing has to be retyped. The submit arrow stays
- * amber. No tile turns any colour. Nothing shakes, flashes, buzzes or plays a
- * sound. There is no attempt counter, no "2 tries left", no lives, no timer,
- * and nothing is deducted. The streak line in the footer is unchanged. The
- * player has lost nothing at all, and the screen is careful to look like it.
+ *   /celebration     → <SolveCelebration> over the real board in daily.tsx
+ *   /near-miss       → <GuessNote tone="close"> under the board
+ *   /wrong-guess     → <GuessNote> plus the shake and the haptic
+ *   /solved-today    → <SolvedBoard> in daily.tsx
+ *   /offline-notice  → <OfflineBanner> mounted by shop.tsx
+ *   /pack-puzzle     → /pack-level/[id]/[n]
+ *   /token-probe     → a token debugging tool, not a screen
  *
- * The comparison worth holding in mind: nearly every word game on either store
- * answers a wrong guess with red and a shake. Both of those are in the
- * vocabulary of *correction*, and this product does not have one. See
- * components/motion.tsx for why the note fades rather than slides.
+ * They were built in sessions 3 and 4 as the design-reference versions the
+ * inline ones were written from, which was the right call then. They have been
+ * dead weight in the bundle since the inline versions landed; the link row was
+ * the only thing keeping them nominally alive.
  *
- * STATE: none. MOUSE against a five-letter answer is the design's own guess,
- * hard-coded, as is the used-key state. The real version is one branch of the
- * guess handler in plans/05 §6 — and when it exists, THIS FILE GOES: it becomes
- * a `note` prop on the Daily screen, not a route.
- * ──────────────────────────────────────────────────────────────────────────
+ * The reasoning in the originals is not lost — it moved into the components
+ * that replaced them. See git history for the full text.
  */
-
-const CLUES = ['GREEN', 'BOAT', 'LIGHT'];
-const TYPED = 'MOUSE';
-
-/** H is the only key not yet spent. Dimmed keys stay tappable — see LetterKeys. */
-const KEYS = [
-  { letter: 'E', used: true },
-  { letter: 'H' },
-  { letter: 'M', used: true },
-  { letter: 'O', used: true },
-  { letter: 'S', used: true },
-  { letter: 'U', used: true },
-];
-
-export default function WrongGuess() {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <View className="flex-1 bg-wh-ground">
-      <PuzzleGround />
-
-      <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-        <DailyAltHeader onMenu={() => router.back()} />
-        <DailyEyebrow>Monday 10 August</DailyEyebrow>
-
-        <ClueStack clues={CLUES} />
-
-        <View className="gap-[11px] px-5">
-          <AnswerRow length={5} typed={TYPED} />
-          <LetterKeys keys={KEYS} />
-        </View>
-
-        <GuessNote delay={BOARD_TIMINGS.footer}>Not this one — try another</GuessNote>
-
-        <Appear
-          delay={BOARD_TIMINGS.footer}
-          className="h-[60px] flex-row items-center justify-between px-[22px]"
-        >
-          <NudgeButton onPress={() => router.push('/nudge-picker')} />
-          <StreakNote>12 day streak</StreakNote>
-        </Appear>
-      </View>
-    </View>
-  );
+export default function Removed() {
+  return null;
 }

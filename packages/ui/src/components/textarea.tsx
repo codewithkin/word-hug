@@ -1,17 +1,9 @@
-import { cn } from "@word-hug/ui/lib/utils";
-import * as React from "react";
-
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
-  return (
-    <textarea
-      data-slot="textarea"
-      className={cn(
-        "flex field-sizing-content min-h-16 w-full resize-none rounded-none border border-input bg-transparent px-2.5 py-2 text-xs transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 md:text-xs dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-export { Textarea };
+/**
+ * Removed in session 8b — unused. `git rm` this file.
+ *
+ * shadcn boilerplate from the template, carried over from a chat product.
+ * apps/web imports exactly three components — button, dropdown-menu and
+ * sonner — and `@word-hug/ui` exports per file, so these were never bundled.
+ * They were still installed, typechecked and linted on every run.
+ */
+export {};
