@@ -4,6 +4,71 @@ Newest first. This is where the *reasoning* lives — git has the file list.
 
 ---
 
+## Session 8c — the hint ladder sold again, live billing wired
+
+Two reversals, one of them of this project's own decision from the previous
+session, which is the honest thing that happens when someone finally plays the
+game.
+
+### D-010 — the category is a product, so it is sold
+
+Session 8b printed the category on every board and retired tier 1, reasoning
+that a free hint behind a `?` button reads as a charge nobody taps. The
+diagnosis was right and the cure was worse: with the category free, coins had
+one sink left, and **a currency with one remaining sink is not much of a
+currency**. The owner reversed it within a day of playing.
+
+The chip, its prop chain and `categoryChip()` are gone. Tier 1 is back, priced,
+ladder now 1/2/3 against 3 install coins plus 1 daily coin — roughly one hint a
+day. Teal position feedback stays free; it is feedback about the guess you made,
+not a hint about the answer you have not. Tier integers were never touched —
+they are storage keys, through both directions of this flip.
+
+`daily-loop-check` guards both halves: no screen prints or passes the category,
+tier 1 exists at cost 1, prices ascend 1/2/3 with no free entry. Verified by
+re-injecting `cost: 0` and watching two checks go red.
+
+### Live billing
+
+The dashboard work landed on the owner's side — products created straight in
+Play Console and imported into RevenueCat, entitlements extended across stores,
+bundle attached to all five entitlements, default offering complete. Code side:
+`extra.revenueCatKeys` replaces the single key, Android pointing at the live
+Play app (`goog_…`, app id `app05dac30f80`), iOS an explicit empty slot until an
+App Store app exists — configuring against the wrong platform's key would fail
+in ways nobody needs to debug.
+
+### Docs told the truth
+
+`systems/monetization.md` still described the PRD's unbuilt design (`wh_*`
+ids, `hug_club`, restorable coins). Rewritten to shipped reality — identifiers
+as the dashboard actually spells them (spaces included), coins local-only,
+restore brings packs but never coins. `release-playstore.md` records what is
+done and the EAS lesson below.
+
+### Also recorded here: why the first EAS production build died
+
+`ERR_PNPM_OUTDATED_LOCKFILE`: a `package.json` edit landed without its
+regenerated lockfile, and CI installs with `--frozen-lockfile`. The build also
+ran from a dirty tree (the `*` on the SHA). Rule now written into the release
+guide: **lockfile commits ride along with dependency edits; push; build clean.**
+
+---
+
+## Session 8b — recorded late
+
+The session that ended twice on usage limits; its reasoning lives in
+`05-known-issues.md` §17 and `02-dependencies.md` §8, so only the shape is
+repeated here. Two bugs found by the owner playing: `EYE` offered one E because
+`keysFor` used distinct letters (77 of 300 answers affected), and a dependency
+audit that scanned JS imports deleted `shadcn` — imported only by CSS
+`@import` — killing the Docker build. Both fixes carry hardened checks, and
+both failures are the same species: **a check asking a slightly wrong question
+passes forever.** The store listing copy went to
+`systems/store-listing.md`; the PowerShell command rules went to
+`AGENT-PROCESS.md` §5b after a whole command list failed on bash syntax.
+
+---
 ## Session 8 — monetisation, difficulty, and two features removed
 
 The longest session so far, and the one that removed the most. Three things the
