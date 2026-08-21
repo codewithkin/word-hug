@@ -30,3 +30,8 @@ expo-env.d.ts
 # @end expo-cli
 # Scratch scoped typecheck config — never committed.
 tsconfig.scope.json
+
+# Google Play service-account key. Uploads releases on your behalf — never commit it.
+play-service-account.json
+*.keystore
+*.jks

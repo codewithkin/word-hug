@@ -1,5 +1,20 @@
 # Screen status
 
+> **Session 8b — seven routes were removed.** `/celebration`, `/near-miss`,
+> `/wrong-guess`, `/solved-today`, `/offline-notice`, `/pack-puzzle` and
+> `/token-probe` no longer exist as routes. Each had already been superseded by
+> an inline implementation on the screen that owns the moment — the celebration
+> is an overlay over the real board, the guess notes are a line under it, and
+> pack puzzles are `/pack-level/[id]/[n]`. They stayed reachable only via the
+> `__DEV__` scaffolding link row, which was also deleted this session, and
+> `nav-check` then correctly called them orphans.
+>
+> **The moments still exist and are still built.** Only the standalone
+> design-reference routes are gone. The route count is 29, not 36.
+>
+> `/archive`, `/archive-puzzle`, `/archive-day-one` and `/archive-locked` were
+> retired in session 8 when the archive itself was.
+
 **The one place that answers "which screens are done".** Nothing else in `progress/`
 tries to answer this. If this file and a changelog entry disagree, this file is right.
 

@@ -4,6 +4,100 @@ Newest first. This is where the *reasoning* lives — git has the file list.
 
 ---
 
+## Session 8 — monetisation, difficulty, and two features removed
+
+The longest session so far, and the one that removed the most. Three things the
+project believed about itself turned out to be wrong, and the wrong ones were
+load-bearing.
+
+### Hearts are gone (D-006)
+
+Built last session, deleted this one. The argument that settled it was not
+"rule 1" — it was that **an energy meter exists to end the session**, and the
+plan is ad-supported. Ad inventory is a function of time in the app, so hearts
+were spending the revenue they existed to protect. Two mechanics wanting
+opposite things from the same player.
+
+Deleted rather than flagged off. `heartsLost` became `wrongGuesses`: same
+signal, counted and never charged, because the difficulty model needs it. The
+four loop checks that policed heart *exemptions* now assert the mechanic does
+not exist.
+
+`app/onboarding/welcome.tsx` got its line back — "No timer, no score, no way to
+lose" — which was pulled in 7c when hearts made it false.
+
+### Level 1 was unplayable, and the check said it was fine (D-007)
+
+The owner could not solve level 1. It was `book`: `__CASE / NOTE__ / __MARK`,
+three different sentence frames on the first puzzle anyone ever sees.
+
+The difficulty model scored **word frequency**, which for the answer slot is
+partly inverted — `time` and `line` are top-100 English nouns and the two
+hardest puzzles in the bank. `book` is common, so it scored easiest.
+
+Worse: `scripts/level-check.mjs` asserted "the opening five are difficulty 1–2"
+and **passed**. A check that reads its verdict from the same model that produced
+the ordering cannot catch a wrong model; it can only confirm the model agrees
+with itself. It now asserts content properties — same-side clues, household
+compounds, a picturable answer — and `build-levels.mjs` throws rather than warns.
+Verified by re-injecting the original bug.
+
+Eight source rows were retuned so their clues sit on one side of the answer,
+taking on-ramp-eligible puzzles from 4 to 10. Level 1 is now `bird`: birdcage,
+birdsong, birdbath.
+
+### RevenueCat, wired (D-008)
+
+Nine products, five entitlements, one offering. The dashboard uses `wordhug_*`
+and the app said `wh_*`, so nothing would have resolved.
+
+Caught before it cost money: the bundle entitlement had all six products
+attached, so buying one £1.99 pack would have granted all five. The fix is the
+bundle product attached to each of the five pack entitlements instead — done on
+the owner's side.
+
+Coins are deliberately local. RevenueCat's virtual currency can grant a balance
+but cannot spend one without a backend, so it would have been a second source of
+truth that could not do the job. Trialled and removed the same session.
+
+Two screens were lying and now are not: `/restore-result` promised coins come
+back (consumables do not), and onboarding promised the archive (retired in 7c).
+
+### Help that is always on (D-009)
+
+The free hint was free and hidden — behind a `?` next to a coin balance, which
+reads as a charge. The category is now printed on every board, and
+correct-position letters go teal after a wrong guess. Both live in
+`components/game-board.tsx`, which is what makes "everywhere" true.
+
+`app/daily.tsx` still held a near-verbatim copy of the board that was extracted
+*from* it in session 8. It now uses `GameBoard`, because adding both aids to a
+duplicate would have meant maintaining two boards forever.
+
+### Housekeeping that was overdue
+
+- **Line endings.** `plans/01-prd.md` reported 542 insertions and 542 deletions
+  in a session that never opened it. `.gitattributes` now pins LF.
+- **The scaffolding link row is gone**, not `__DEV__`-gated. A dev-only
+  affordance you look past every time is still an affordance you look past.
+- **Build size.** Nine unused Expo modules with native code were removed — they
+  were autolinked into the APK whether or not any JS imported them. Plus
+  `@gorhom/bottom-sheet`, i18next, and sixteen unused shadcn components.
+  `shadcn` (the CLI) was a runtime dependency of `packages/ui`.
+- **The web app is real.** `wordhug.gamesforstrangers.lol` — landing, privacy
+  and terms, on brand, plus a Dockerfile. Settings pointed at `wordhug.app`, a
+  domain nobody owns; a store reviewer would have found that, not us.
+
+### What is still not true
+
+- 73 of 300 puzzles fail `pnpm validate:bank` — genuine dual answers and
+  invented compounds.
+- `pnpm levels:corpus` has never been run. The difficulty model's familiarity
+  lists are authored, not measured.
+- Nothing has ever been run on a device by an agent, as always.
+
+---
+
 ## Session 7b — the remaining screens, and a verification tool that lied
 
 ### Every screen now exists

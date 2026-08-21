@@ -7,7 +7,7 @@ if they are real, with what to look for and where the fix goes.
 **Read this before debugging anything.** Most of it fails in a way that looks
 like something else.
 
-**Last updated: end of session 5.** Items 2 and 5 are RESOLVED and kept below with
+**Last updated: end of session 8b.** Sections 15 and 16 are the current ones. Items 2 and 5 are RESOLVED and kept below with
 their resolution, so nobody re-fixes them or wonders where they went.
 
 **Session 5 note — the build itself was broken, and that is now fixed.** Session 5 had
@@ -26,6 +26,78 @@ Session 5 also established two things that make debugging cheaper:
   the real typecheck. It now covers `lib/` too.
 - **Autolinking is healthy under pnpm.** All 11 community native modules resolve. If a
   native module is missing at runtime, that is not the first thing to suspect.
+
+---
+
+## 15. Session 8 — READ THIS FIRST
+
+Four things this repo used to say about itself are now false. Every one is a
+decision in `systems/09-decisions.md`; the short version is here so nobody
+"fixes" them back.
+
+### Hearts do not exist (D-006)
+
+`lib/lives.ts` and `components/hearts-meter.tsx` are tombstoned files
+containing `export {}`. **They should have been `git rm`'d** — if they are still
+in the tree, delete them. There is no heart balance, no regen, no refill, and
+`scripts/daily-loop-check.mjs` asserts all three absences.
+
+### `wrongGuesses` is a measurement, never a cost
+
+`LevelResult.heartsLost` was renamed. It is counted on every wrong guess and
+charged for nothing. The field has `.catch(0)` so pre-rename records still
+parse.
+
+### The category is printed, not sold (D-009)
+
+`NUDGE_RUNGS` starts at **tier 2**. Tier 1 is still a valid stored integer and
+`nudgeNote` handles it by returning null. **Never renumber the tiers** — they
+are keys in `nudges` against puzzle ids.
+
+### Coins are local, packs are RevenueCat's (D-008)
+
+Do not "unify" them. RevenueCat cannot spend a virtual currency without a
+backend, which this app does not have and is not getting. This was tried and
+removed inside session 8.
+
+---
+
+## 16. Session 8 — what to actually look at on a device
+
+Nothing below is known broken. These are the changes most likely to be wrong in
+a way only a screen will show.
+
+**1. `app/daily.tsx` now renders `GameBoard`.** It previously held a
+near-verbatim copy of that component. The migration is the highest-risk change
+of the session: if the daily board's spacing, tile size or action bar looks
+different from the level board, this is why. Both should now be identical by
+construction.
+
+**2. Correct-position feedback may be too strong.** Teal tiles after a wrong
+guess, ungated, on every board. With six keys and a four-letter answer, most
+levels are brute-forceable in about three guesses. The owner chose ungated
+against a recommendation to gate it behind two wrong guesses. To reverse: one
+line in each of `hooks/use-level.ts` and `hooks/use-daily-puzzle.ts` — only
+call `setCorrectAt` when `wrongGuesses >= 1`.
+
+**3. The category chip competes with the clues.** It sits above three 70px clue
+cards on a screen that was already full. If the board feels crowded, the chip
+is the newest thing on it.
+
+**4. The coin pulse.** `CoinPill` takes a `pulse` prop and bumps to 1.18 once
+when it changes. It is guarded on a truthy value so it does not fire on mount —
+if the pill bounces every time a screen opens, that guard has been lost.
+
+**5. Nine Expo modules were removed.** `expo-audio`, `expo-image`,
+`expo-application`, `expo-secure-store`, `expo-store-review`,
+`expo-web-browser`, `expo-localization`, `expo-network` and `expo-insights`.
+All were unused by JS but autolinked into the binary. If something native
+throws at startup, this is the first thing to suspect and the fix is to reinstall
+the one module rather than all nine.
+
+**6. `expo-dev-client` moved to `devDependencies`.** A development build still
+needs it. If `eas build --profile development` produces something that will not
+connect, check it is installed.
 
 ---
 
