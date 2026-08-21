@@ -1,3 +1,18 @@
+/**
+ * ⚠️ These three are **dependencies**, imported from CSS rather than from
+ * JavaScript.
+ *
+ * Session 8b removed `shadcn` from this package's `dependencies` after an
+ * audit that scanned `.ts`/`.tsx` for `from '…'`, `require(…)` and `import(…)`.
+ * It found no JS importer, because there isn't one — the importer is line 3 of
+ * this file. The Docker build then failed with
+ * "Can't resolve 'shadcn/tailwind.css'", which is a clear message about a
+ * cause nobody was looking at.
+ *
+ * If you audit dependencies again, grep `@import` too. `tailwindcss`,
+ * `tw-animate-css` and `shadcn` are all load-bearing and all invisible to a
+ * JS-only scan.
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

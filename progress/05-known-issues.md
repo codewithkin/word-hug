@@ -29,6 +29,47 @@ Session 5 also established two things that make debugging cheaper:
 
 ---
 
+## 17. Two bugs the checks did not catch, and now do
+
+Both found by the owner playing, both from session 8b, both worth reading as a
+pattern: **a check that asks a slightly wrong question passes forever.**
+
+### `EYE` offered one E
+
+`keysFor` built the key row from `new Set(answer)` — distinct letters. Level 3
+is `eye`, so the row had one E, and the player had to discover that tapping the
+already-dimmed E again was allowed. The code knew this and a comment defended
+it ("a dead key is a bug"), but a key that *looks* dead is the same bug wearing
+a coat.
+
+**77 of the 300 answers have a repeated letter.** `pepper` is the worst — three
+Ps and two Es.
+
+`level-check.mjs` passed the whole time because it asked "does every distinct
+letter of the answer have a key?" rather than "is each letter offered as many
+times as the answer needs it?". Fixed, and verified by reverting `keysFor`:
+66 errors.
+
+Consequences worth knowing: key rows can now be up to seven caps wide
+(`pepper`), `keys` may contain the same letter twice so React keys are
+index-based, and "spent" dimming is per occurrence — the first E dims after one
+E is typed, the second only after two.
+
+### The dependency audit missed CSS imports
+
+Session 8b removed `shadcn` from `packages/ui`. The audit scanned `.ts`/`.tsx`
+for `from`, `require` and `import()` and found no importer — because the
+importer is line 3 of `packages/ui/src/styles/globals.css`:
+`@import "shadcn/tailwind.css"`.
+
+The Docker deploy failed with `Can't resolve 'shadcn/tailwind.css'`. Restored.
+`tailwindcss` and `tw-animate-css` are in the same position and are load-bearing
+for the same invisible reason.
+
+**If you audit dependencies again, grep `@import` as well as the JS forms.**
+
+---
+
 ## 15. Session 8 — READ THIS FIRST
 
 Four things this repo used to say about itself are now false. Every one is a
