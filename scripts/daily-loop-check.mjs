@@ -163,9 +163,19 @@ group('rule 1 — nothing that punishes', () => {
   ok('the streak pill hides at zero',
     index.includes('streak > 0'),
     '"0 day streak" on someone\'s first morning is a scolding');
-  ok('the scaffolding link row cannot ship',
-    index.includes('if (!__DEV__) return null'),
-    'the temporary route list must not reach a store build');
+  /**
+   * The scaffolding link row is **gone**, not gated.
+   *
+   * It was a grid of links to all 36 routes, `__DEV__`-gated so it could not
+   * reach a store build. The owner asked for it removed outright — it sat
+   * under the board on the screen they open to play, and a dev-only affordance
+   * you have to look past every time is still an affordance you look past.
+   *
+   * Asserted as an absence so it cannot be reintroduced by a revert.
+   */
+  ok('the scaffolding link row is gone',
+    !/ScaffoldingLinks|LINK_GROUPS/.test(index),
+    'removed in session 8b — route testing belongs in a dev menu, not the board');
 
   /**
    * ── There is no failure state ───────────────────────────────────────────

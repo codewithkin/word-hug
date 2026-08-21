@@ -1,4 +1,4 @@
-import { Link, router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -76,78 +76,6 @@ const IN = {
   keys: 120 + 3 * STAGGER + 80,
   actions: 120 + 3 * STAGGER + 140,
 };
-
-/**
- * TEMPORARY. The scaffolding link row, grouped so twenty-two entries stay
- * readable. `__DEV__`-gated as of session 6 so it cannot reach a store build,
- * and deleted outright once the probe reads all-OK in both themes.
- */
-const LINK_GROUPS: { label: string; links: [string, Href][] }[] = [
-  {
-    label: 'Screens',
-    links: [
-      ['Probe', '/token-probe'],
-      ['Onboarding', '/onboarding/welcome'],
-      ['Pack', '/pack-puzzle'],
-      ['Settings', '/settings'],
-      ['How', '/how-to-play'],
-      ['Stats', '/stats'],
-      ['Loading', '/loading'],
-      ['Error', '/error'],
-    ],
-  },
-  {
-    label: 'Overlays',
-    links: [
-      ['Solve', '/celebration'],
-      ['Nudge', '/nudge-picker'],
-      ['Coins', '/zero-coin'],
-      ['Offline', '/offline-notice'],
-    ],
-  },
-  {
-    label: 'States',
-    links: [
-      ['Solved', '/solved-today'],
-      ['Wrong', '/wrong-guess'],
-      ['Near', '/near-miss'],
-      ['Caught', '/caught-up'],
-      ['No packs', '/nothing-owned'],
-      ['No store', '/store-unreachable'],
-      ['No stats', '/stats-empty'],
-    ],
-  },
-];
-
-function ScaffoldingLinks() {
-  if (!__DEV__) return null;
-
-  return (
-    <View className="gap-[3px] py-2">
-      {LINK_GROUPS.map((group) => (
-        <View
-          key={group.label}
-          className="flex-row flex-wrap items-center justify-center gap-x-[13px]"
-        >
-          <Text className="font-wh-heavy text-[9px] uppercase tracking-wh-label text-wh-text-whisper">
-            {group.label}
-          </Text>
-          {group.links.map(([label, href]) => (
-            <Link
-              // The label, not the href: `Href` widens to an object under typed
-              // routes and is not a valid React key.
-              key={label}
-              href={href}
-              className="font-wh-regular text-wh-sm text-wh-text-muted"
-            >
-              {label}
-            </Link>
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export default function DailyPuzzle() {
   const insets = useSafeAreaInsets();
@@ -315,8 +243,6 @@ export default function DailyPuzzle() {
             />
           </>
         )}
-
-        <ScaffoldingLinks />
       </View>
 
       {/* ── Overlay A, over the real board ──────────────────────────────

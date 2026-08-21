@@ -48,9 +48,28 @@ export function CoinPill({ coins, pulse }: { coins: number; pulse?: number }) {
     <ChunkyPressable
       offset={3}
       shadowVar="--color-wh-surface-shadow"
-      onPress={() => router.push({ pathname: '/shop', params: { coins: '1' } })}
+      /**
+       * An empty wallet goes to `/zero-coin`, not to the shop.
+       *
+       * Overlay C is a screen about what is still free — the daily puzzle, the
+       * fifty levels, the category on every board — and it offers the shop as
+       * one option rather than being one. Sending someone at zero straight to
+       * a price list is the app answering "I have no coins" with "give us
+       * money", which is the wrong first reply.
+       *
+       * It also restores the route's reachability: `/zero-coin` lost its only
+       * short path when the hearts refill was removed, and `nav-check` had it
+       * at three hops from home.
+       */
+      onPress={() =>
+        coins === 0
+          ? router.push('/zero-coin')
+          : router.push({ pathname: '/shop', params: { coins: '1' } })
+      }
       accessibilityRole="button"
-      accessibilityLabel={`${coins} coins. Tap to get more.`}
+      accessibilityLabel={
+        coins === 0 ? 'No coins. See what is still free.' : `${coins} coins. Tap to get more.`
+      }
       className="h-[42px] flex-row items-center gap-2 rounded-wh-pill bg-wh-surface pl-[10px] pr-[14px]"
     >
       <Chunky

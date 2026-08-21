@@ -40,6 +40,9 @@ const warn = (m) => (warnings++, console.warn(`  warn   ${m}`));
 
 // ── Discover routes ────────────────────────────────────────────────────────
 
+/** Routes whose files exist only until the owner runs `git rm`. See below. */
+const tombstoned = [];
+
 /** Every `.tsx` under app/, as the route path Expo Router will serve. */
 function routes(dir = APP, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -53,6 +56,30 @@ function routes(dir = APP, out = []) {
 
     const rel = relative(APP, full).replace(/\\/g, '/').replace(/\.tsx$/, '');
     const route = rel === 'index' ? '/' : `/${rel.replace(/\/index$/, '')}`;
+
+    /**
+     * ── Tombstones ────────────────────────────────────────────────────────
+     * An agent working in this repo **cannot delete files** — `rm` fails
+     * silently on the mount (see `progress/00-START-HERE.md`). The convention
+     * is to overwrite the file with a comment explaining the removal and hand
+     * the owner a `git rm`.
+     *
+     * Between those two moments the file is still on disk, so Expo Router
+     * still serves it and this script still sees a route. Reporting seven
+     * "orphaned" errors for files that are *deliberately* orphaned and awaiting
+     * deletion trains someone to ignore the output, which is the one thing a
+     * check must never do.
+     *
+     * So they are collected and reported once, as a warning naming the command
+     * that finishes the job. The marker is matched on the exact sentence the
+     * tombstone comment opens with, not on "removed" or a filename list — a
+     * loose match here would let a real orphan hide behind the word.
+     */
+    if (readFileSync(full, 'utf8').includes('— orphaned. `git rm` this file')) {
+      tombstoned.push({ route, file: `app/${rel}.tsx` });
+      continue;
+    }
+
     out.push({ route, file: `app/${rel}.tsx`, full });
   }
   return out;
@@ -246,6 +273,14 @@ if (orphans.length === 0) {
 }
 
 // ── 3. Dead ends ───────────────────────────────────────────────────────────
+
+if (tombstoned.length > 0) {
+  console.log('\nawaiting deletion');
+  warn(
+    `${tombstoned.length} route${tombstoned.length === 1 ? '' : 's'} tombstoned but still on disk`
+  );
+  console.log(`  git rm ${tombstoned.map((t) => t.file).join(' ')}`);
+}
 
 console.log('\nescape routes');
 
