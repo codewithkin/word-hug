@@ -68,6 +68,37 @@ end of the session. Talk about progress in screens, not in features: "onboarding
 
 Re-test these at the start of each session rather than trusting the table.
 
+### 5b. **The owner runs Windows PowerShell. Write commands for PowerShell.**
+
+Established the hard way in session 8b: a whole command list was handed over in
+bash and most of it failed on syntax before it reached git. This is the single
+most wasteful mistake an agent has made in this project, because it costs the
+owner a round trip every time and nothing about it is visible from inside the
+sandbox — which is Linux.
+
+The four that actually bit:
+
+| Wrong (bash) | Right (PowerShell) | What happens otherwise |
+|---|---|---|
+| `rm -f path` | `Remove-Item -Force path` | `-f` is ambiguous between `-Filter` and `-Force`; PowerShell refuses rather than guessing |
+| `a && b` | `a; b` — or two lines | `&&` is not a statement separator in Windows PowerShell 5.1 |
+| trailing `\` to continue a line | backtick `` ` `` — or just one long line | `\` is read as a path argument and git reports it as outside the repository |
+| `cd dir && cmd` | `cd dir` then `cmd`, then `cd ..` | same `&&` problem, and `cd -` does not exist |
+
+Two more rules that follow from it:
+
+- **Always give paths from the repository root.** A list of bare filenames with
+  a comment saying "run this from `apps/native/`" gets pasted whole and fails.
+  Prefix every path.
+- **`git rm` fails on a file you have edited.** Agents cannot delete files here
+  (see the table below), so the convention is to tombstone: overwrite the file
+  with a comment and hand over a `git rm`. But a tombstone is a *modification*,
+  and plain `git rm` refuses with "the following files have local
+  modifications". **Always hand over `git rm -f`.**
+
+Multi-line commit messages do work in PowerShell — an unterminated quote opens
+a continuation prompt and the message lands correctly.
+
 ### 6. Every value in two places gets a test spanning the gap
 
 `packages/tokens/test/design-parity.mjs` compares TypeScript tokens against design HTML.
@@ -87,6 +118,8 @@ passes forever because it matches nothing.
 
 | Anti-pattern | What happened here |
 |---|---|
+| **Writing bash for a Windows owner** | Session 8b. `rm -f`, `&&`, `\` continuations and bare relative paths — most of a command list failed on syntax. See §5b. The sandbox is Linux and gives no hint that the owner's shell is not. |
+| **`git rm` on a tombstoned file** | Same session. Agents cannot delete here, so files are tombstoned instead — which makes them modified, which makes plain `git rm` refuse. Hand over `git rm -f`. |
 | **Building from tokens instead of designs** | `dark.onPrimary` was copied from light. The amber is identical in both themes; the text on it is not (`#3B2400` vs `#4A3000`). Caught only by the parity test. |
 | **Simplifying a fill** | The Daily background is a three-stop radial gradient with a warm glow, not flat `#FFF9EF`. Plausible in code, wrong on screen. |
 | **Trusting a census over the file** | `#20160C` is the most frequent dark background and is the device mockup bezel, not UI (D-001). |

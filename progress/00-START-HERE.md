@@ -118,6 +118,12 @@ submitted. The privacy page has a comment saying so at the top.
   systems (D-008).
 - **`.gitattributes` pins LF.** If a diff shows a file you never opened, that
   is not it — that was fixed in 8b.
+- **The key row has one cap per letter *occurrence*, not per distinct letter.**
+  `EYE` shows two Es; `pepper` needs seven caps. `keys` can hold duplicates, so
+  React keys are index-based and "spent" dimming counts occurrences.
+- **`packages/ui` depends on `shadcn`, `tailwindcss` and `tw-animate-css`
+  through CSS `@import`, not JS.** A dependency audit that only greps
+  `from '…'` will call them unused and break the web build.
 - **The scaffolding link row is gone.** There is no in-app route index any more.
   Use `npx expo-router sitemap` or the file tree.
 
@@ -137,6 +143,12 @@ submitted. The privacy page has a comment saying so at the top.
 | Network — npm registry | ❌ |
 | Network — api.datamuse.com | ❌ |
 | **Run the app** | ❌ never. The owner does this. |
+
+> **The owner's shell is Windows PowerShell, not bash.** Every command you hand
+> over must be PowerShell-valid: `Remove-Item -Force` not `rm -f`, `;` not
+> `&&`, no `\` line continuations, and repo-root-relative paths on every
+> argument. `git rm` on a tombstoned file needs `-f`. This cost a full round
+> trip in session 8b — see `AGENT-PROCESS.md` §5b.
 
 Re-test rather than trusting this table.
 
