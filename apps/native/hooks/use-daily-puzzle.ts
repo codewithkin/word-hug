@@ -12,10 +12,11 @@ import {
   recordSolve,
 } from '@/lib/storage';
 import { isFirm, keyHaptic, solveHaptic, wrongGuessHaptic } from '@/lib/feedback';
-import { nudgeNote, type NudgeTier } from '@/lib/nudges';
+import { categoryChip, nudgeNote, type NudgeTier } from '@/lib/nudges';
 import {
   clueWords,
   compoundsFor,
+  correctPositions,
   gradeGuess,
   keysFor,
   longDate,
@@ -78,6 +79,15 @@ export interface DailyGame {
   canSubmit: boolean;
   /** Increments on each firm wrong guess. Feeds `<Shake trigger>`. */
   shakeTrigger: number;
+  /** Slots the last wrong guess got right. Empty until one is made. */
+  correctAt: ReadonlySet<number>;
+  /**
+   * "An animal" — printed on the board, always.
+   *
+   * Null past the end of the bank, where `puzzle` is null and the screen
+   * redirects to `/caught-up` instead of rendering a board.
+   */
+  category: string | null;
   press: (letter: string) => void;
   backspace: () => void;
   submit: () => void;
@@ -107,6 +117,15 @@ export function useDailyPuzzle(): DailyGame {
   const [phase, setPhase] = useState<Phase>(alreadySolved ? 'done' : 'playing');
   const [result, setResult] = useState<GuessResult | null>(null);
   const [shakeTrigger, setShakeTrigger] = useState(0);
+  /**
+   * Slots the last wrong guess got right.
+   *
+   * Held as state rather than derived, because it must describe the guess that
+   * was *submitted*, not whatever is in the tiles now. Deriving it live would
+   * turn the board into a letter-by-letter oracle: type a letter, see it go
+   * teal, keep it. That is a different game, and a much worse one.
+   */
+  const [correctAt, setCorrectAt] = useState<Set<number>>(() => new Set());
 
   const [coins, setCoins] = useState(() => getCoins());
   const [streak, setStreak] = useState(() => getStreak().current);
@@ -155,6 +174,14 @@ export function useDailyPuzzle(): DailyGame {
     (letter: string) => {
       if (phase === 'solved' || phase === 'done') return;
       if (typed.length >= length) return;
+      // Typing into a slot invalidates what the last guess said about it, and
+      // about nothing else — the marks on untouched slots still hold.
+      setCorrectAt((prev) => {
+        if (!prev.has(typed.length)) return prev;
+        const next = new Set(prev);
+        next.delete(typed.length);
+        return next;
+      });
       setTyped(typed + letter);
       setPhase('playing');
       setResult(null);
@@ -166,6 +193,12 @@ export function useDailyPuzzle(): DailyGame {
   const backspace = useCallback(() => {
     if (phase === 'solved' || phase === 'done') return;
     if (typed.length === 0) return;
+    setCorrectAt((prev) => {
+      if (!prev.has(typed.length - 1)) return prev;
+      const next = new Set(prev);
+      next.delete(typed.length - 1);
+      return next;
+    });
     setTyped(typed.slice(0, -1));
     setPhase('playing');
     setResult(null);
@@ -181,6 +214,9 @@ export function useDailyPuzzle(): DailyGame {
     if (graded !== 'correct') {
       // Nothing is deducted, nothing is counted, and the tiles keep the word.
       setPhase('guessed');
+      // Feedback about the guess just made. Computed against the canonical
+      // answer, so an accepted variant does not light up the wrong slots.
+      setCorrectAt(correctPositions(puzzle.answer, typed));
       // A near miss stays warm even in firm mode: it is not a rejection, and
       // shaking the board over "one letter off" would say it was.
       if (graded === 'wrong' && isFirm) {
@@ -230,6 +266,8 @@ export function useDailyPuzzle(): DailyGame {
     streak,
     canSubmit: typed.length === length && length > 0,
     shakeTrigger,
+    correctAt,
+    category: puzzle ? categoryChip(puzzle) : null,
     press,
     backspace,
     submit,

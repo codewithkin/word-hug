@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { CoinPill } from '@/components/coin-pill';
+import { useToast } from '@/components/toast';
 import { LevelNode, type LevelNodeState } from '@/components/level-node';
 import { Appear } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
 import { BLOCK_SIZE, LEVEL_COUNT, levelBlocks } from '@/lib/levels';
 import { puzzleChip, puzzleForDate } from '@/lib/puzzles';
 import {
+  claimDailyCoin,
   claimFreeRunPrompt,
   effectiveToday,
   getCoins,
@@ -64,6 +66,8 @@ export default function Home() {
   const [highest, setHighest] = useState(getHighestLevel);
   const [coins, setCoins] = useState(getCoins);
   const [streak, setStreak] = useState(() => getStreak().current);
+  const [coinPulse, setCoinPulse] = useState(0);
+  const { toast, show, node: toastNode } = useToast();
 
   const [date] = useState(() => effectiveToday());
   const daily = useMemo(() => puzzleForDate(date), [date]);
@@ -80,6 +84,39 @@ export default function Home() {
   }, [daily]);
 
   useFocusEffect(refresh);
+
+  /**
+   * The daily gift coin.
+   *
+   * ── Why here, and why not a dialog ────────────────────────────────────────
+   * Home is the first screen after the splash and the one the morning
+   * notification lands on, so it is where a player reliably is once a day. It
+   * is also not a puzzle screen, which is what rule 3 requires of anything
+   * unprompted.
+   *
+   * The owner asked for a popup. This is a toast and a bump on the coin pill
+   * instead, because a modal on the screen you open every single morning is a
+   * modal you dismiss every single morning — and that is the exact texture
+   * this product is trying not to have. The coin still arrives, the player is
+   * still told, and there is nothing to close.
+   *
+   * `claimDailyCoin` grants before it returns, so the coin is banked whether
+   * or not the toast is ever seen.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!claimDailyCoin()) return;
+
+      setCoins(getCoins());
+      setCoinPulse((n) => n + 1);
+
+      const target = Math.min(getHighestLevel() + 1, LEVEL_COUNT);
+      show({
+        message: `A coin for today — go and crush level ${target}`,
+        tone: 'done',
+      });
+    }, [show])
+  );
 
   /**
    * The end of the free run, once.
@@ -134,7 +171,7 @@ export default function Home() {
           </ChunkyPressable>
 
           <View className="flex-1 flex-row items-center justify-end gap-[7px]">
-            <CoinPill coins={coins} />
+            <CoinPill coins={coins} pulse={coinPulse} />
           </View>
         </Appear>
 
@@ -264,6 +301,8 @@ export default function Home() {
         </Appear>
 
         {/* ── The map ─────────────────────────────────────────────────── */}
+        {toast ? toastNode : null}
+
         <FlatList
           ref={listRef}
           data={blocks}

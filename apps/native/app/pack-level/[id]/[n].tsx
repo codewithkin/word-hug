@@ -63,6 +63,8 @@ export default function PackLevelScreen() {
     coins,
     canSubmit,
     shakeTrigger,
+    correctAt,
+    category,
     press,
     backspace,
     submit,
@@ -134,6 +136,7 @@ export default function PackLevelScreen() {
 
         <GameBoard
           clues={clues}
+          category={category}
           length={level.answer.length}
           typed={typed}
           keys={keys}
@@ -141,6 +144,7 @@ export default function PackLevelScreen() {
           coins={coins}
           canSubmit={canSubmit}
           shakeTrigger={shakeTrigger}
+          correctAt={correctAt}
           onKey={press}
           onBackspace={backspace}
           onSubmit={submit}

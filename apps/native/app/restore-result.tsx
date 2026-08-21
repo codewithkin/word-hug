@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { Sheet } from '@/components/sheet';
 import { PACKS } from '@/content/packs';
+import { restore } from '@/lib/purchases';
 import { getOwnedPacks } from '@/lib/storage';
 
 /**
@@ -16,32 +18,63 @@ import { getOwnedPacks } from '@/lib/storage';
  * anything has done nothing wrong; a person who reinstalled and got their
  * packs back deserves a plain sentence, not a celebration.
  *
- * ── The line that has to stay ─────────────────────────────────────────────
- * "Your coins came back too." Reinstalling restores the full purchased coin
- * balance, ignoring prior spend — that is the decision in
- * `systems/storage-persistence.md` §7 and it is unusually generous, so the
- * screen says it rather than leaving the player to notice.
+ * ── The line that had to change (session 8) ───────────────────────────────
+ * This said "Your coins came back too — the full amount you bought, whatever
+ * you had spent." That was the plan in `systems/storage-persistence.md` §7,
+ * written before RevenueCat was wired, and it assumed coins could be rebuilt
+ * from transaction history.
  *
- * ── Not wired to RevenueCat ───────────────────────────────────────────────
- * `react-native-purchases` is installed and unconfigured, so this reports what
- * is in local storage. When entitlements are real, `getOwnedPacks()` becomes a
- * RevenueCat call and this screen does not otherwise change.
+ * They cannot. Coins are a RevenueCat **virtual currency**, and virtual
+ * currency is explicitly *not* transferable on restore — it belongs to the
+ * customer record, and a reinstall creates a new anonymous one. Packs come
+ * back. Coins do not.
+ *
+ * So the screen now says what actually happens. A restore screen that promises
+ * a balance the player then does not have is the single worst place in the app
+ * to be caught lying, because it is the screen someone opens when they already
+ * suspect they have lost something they paid for.
+ *
+ * Getting coins to survive a reinstall needs real accounts, which is a much
+ * larger decision than this file.
  */
 export default function RestoreResult() {
-  const owned = getOwnedPacks();
+  /**
+   * The restore runs when the screen opens, not when a button is pressed.
+   *
+   * Reaching this route *is* the request — the shop's "Restore purchases" row
+   * pushed here. A second confirmation step would be asking someone to say yes
+   * twice to the same question.
+   */
+  const [busy, setBusy] = useState(true);
+  const [owned, setOwned] = useState<string[]>(getOwnedPacks);
+
+  useEffect(() => {
+    let live = true;
+    void restore().then(() => {
+      if (!live) return;
+      setOwned(getOwnedPacks());
+      setBusy(false);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const names = PACKS.filter((p) => owned.includes(p.id)).map((p) => p.name);
   const found = names.length > 0;
 
   return (
     <Sheet onDismiss={() => router.back()}>
       <Text className="font-wh-bold text-wh-h3 text-wh-clue-text">
-        {found ? 'Everything is back' : 'Nothing to restore'}
+        {busy ? 'Checking…' : found ? 'Your packs are back' : 'Nothing to restore'}
       </Text>
 
       <Text className="font-wh-regular text-[15px] leading-[22px] text-wh-chip-text">
-        {found
-          ? 'Your packs are unlocked again. Your coins came back too — the full amount you bought, whatever you had spent.'
-          : "We couldn't find any previous purchases on this account. Nothing is lost — the daily puzzle and the first levels are free either way."}
+        {busy
+          ? 'Asking the store what you have bought before.'
+          : found
+            ? 'Unlocked again, on this device. Coins are the one thing a restore cannot bring back — they are spent from this device rather than held by the store.'
+            : "We couldn't find any previous purchases on this account. Nothing is lost — the daily puzzle and the first fifty levels are free either way."}
       </Text>
 
       {found ? (

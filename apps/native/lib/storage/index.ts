@@ -1,6 +1,7 @@
 import { MMKV } from 'react-native-mmkv';
 
 import {
+  DAILY_COIN_GRANT,
   DEFAULT_REMINDER_TIME,
   INSTALL_COIN_GRANT,
   INSTANCE,
@@ -234,6 +235,37 @@ export function spendCoins(amount: number): boolean {
 
 export function grantCoins(amount: number): void {
   progress.set(PROGRESS.coinBalance, getCoins() + amount);
+}
+
+/**
+ * One free coin a day, the first time the app is opened.
+ *
+ * ── Why it is a gift and not a streak ─────────────────────────────────────
+ * It grants on any launch, asks for nothing, and skipping a day costs nothing.
+ * A "daily reward" that escalates and resets is a punishment mechanic wearing
+ * a bow — miss Thursday and lose your multiplier is the same shape as losing a
+ * heart, and hearts were removed in this same session for the same reason.
+ *
+ * ── Grant first, tell second ──────────────────────────────────────────────
+ * Returns true exactly once per calendar day, **and the coin is already in the
+ * balance by the time it returns.** The caller's only job is to say so. That
+ * ordering is deliberate: if the toast owned the granting, dismissing it fast,
+ * backgrounding the app, or a render bailing out would silently cost the
+ * player their coin — a bug that would be invisible in testing and infuriating
+ * in use.
+ *
+ * Keyed on the raw local date rather than the clamped `effectiveToday`,
+ * because a gift is not on the puzzle schedule. The worst a clock-shifter can
+ * do here is farm coins, which buys hints in a single-player game with no
+ * leaderboard.
+ */
+export function claimDailyCoin(): boolean {
+  const today = localDate();
+  if (progress.getString(PROGRESS.coinDailyDate) === today) return false;
+
+  grantCoins(DAILY_COIN_GRANT);
+  progress.set(PROGRESS.coinDailyDate, today);
+  return true;
 }
 
 // ── Solves ─────────────────────────────────────────────────────────────────

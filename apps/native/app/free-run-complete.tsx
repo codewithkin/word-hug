@@ -5,6 +5,7 @@ import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { Sheet } from '@/components/sheet';
 import { PACKS } from '@/content/packs';
 import { LEVEL_COUNT } from '@/lib/levels';
+import { presentPaywall, purchasesAvailable } from '@/lib/purchases';
 
 /**
  * ── The end of the free run ───────────────────────────────────────────────
@@ -29,12 +30,48 @@ import { LEVEL_COUNT } from '@/lib/levels';
  * **"They're really fun" stays.** It is the owner's line, it is warm rather
  * than salesy, and it is the closest this product comes to a boast.
  *
+ * ── The paywall (session 8) ───────────────────────────────────────────────
+ * TAKE A LOOK now opens RevenueCat's remotely-configured paywall, and falls
+ * back to `/shop` when there is not one — which is also what happens offline,
+ * on web, and if the SDK could not configure.
+ *
+ * This is the one place in the app that uses the hosted paywall, deliberately.
+ * It is the single unprompted sell, so it is the single screen where being
+ * able to change the pitch, the price framing and the layout without shipping
+ * a release is worth more than the design being exactly ours. Everywhere else
+ * the hand-built shop wins, because the shop has to say "There's nothing to
+ * buy today. The daily puzzle is free, always" — and no dashboard template is
+ * going to volunteer that sentence.
+ *
  * ── What it must never grow ───────────────────────────────────────────────
  * A countdown. A discount badge. A "limited time". A second showing. Any of
  * those turns finishing the free run — which should feel like an achievement —
  * into the moment the game started selling.
+ *
+ * **That applies to the hosted paywall too.** It is configured in a dashboard
+ * by whoever has the login, which means the rules above are no longer enforced
+ * by this file. They still apply.
  */
 export default function FreeRunComplete() {
+  /**
+   * The hosted paywall, or the shop.
+   *
+   * The sheet is dismissed first either way: leaving it mounted underneath
+   * would put the paywall on top of a modal, and dismissing the paywall would
+   * drop the player back onto an offer they have just answered.
+   *
+   * `presentPaywall` returns false for "nothing configured", "offline" and
+   * "not supported here" alike, and all three want the same fallback, so they
+   * are not distinguished.
+   */
+  async function openOffer() {
+    router.back();
+
+    if (purchasesAvailable() && (await presentPaywall())) return;
+
+    router.push('/shop');
+  }
+
   return (
     <Sheet lift onDismiss={() => router.back()}>
       <Text className="font-wh-heavy text-wh-micro uppercase tracking-wh-label text-wh-text-quiet">
@@ -69,10 +106,7 @@ export default function FreeRunComplete() {
       <ChunkyPressable
         offset={5}
         shadowVar="--color-wh-primary-shadow"
-        onPress={() => {
-          router.back();
-          router.push('/shop');
-        }}
+        onPress={() => void openOffer()}
         accessibilityRole="button"
         accessibilityLabel="Take a look at the packs"
         className="h-[58px] items-center justify-center rounded-[19px] bg-wh-primary"

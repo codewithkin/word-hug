@@ -204,6 +204,73 @@ group('rule 1 — nothing that punishes', () => {
     'the difficulty model needs the signal; the player must not pay for it');
 });
 
+group('help that is always on', () => {
+  /**
+   * ── Session 8b ──────────────────────────────────────────────────────────
+   * The owner could not solve the early levels. Two aids went in, both in the
+   * shared board so no screen can miss them, and both are the kind of thing a
+   * later refactor quietly drops.
+   */
+  const board = code('components/game-board.tsx');
+  const nudges = code('lib/nudges.ts');
+
+  ok('the board prints the category',
+    board.includes('{category}'),
+    'a free hint behind a ? button next to a coin balance is not a free hint');
+  ok('the category is no longer sold as a rung',
+    !/tier: 1,/.test(nudges),
+    'it is on the board now; offering it too would be charging for scenery');
+  ok('tier numbering was not shifted',
+    nudges.includes('tier: 2,') && nudges.includes('tier: 3,'),
+    'nudges are stored by integer against puzzle ids — renumbering re-reads history');
+  ok('every puzzle screen passes the category through',
+    ['app/daily.tsx', 'app/level/[n].tsx', 'app/pack-level/[id]/[n].tsx']
+      .every((f) => code(f).includes('category={category}')),
+    'daily, the free run and the packs must all show it');
+  ok('every puzzle screen passes position feedback through',
+    ['app/daily.tsx', 'app/level/[n].tsx', 'app/pack-level/[id]/[n].tsx']
+      .every((f) => code(f).includes('correctAt={correctAt}')),
+    'same three screens, same reason');
+  ok('feedback describes the submitted guess, not the tiles',
+    code('hooks/use-level.ts').includes('setCorrectAt(correctPositions('),
+    'deriving it live would turn the board into a letter-by-letter oracle');
+  ok('the daily coin is granted before it is announced',
+    /grantCoins\(DAILY_COIN_GRANT\);\s*\n\s*progress\.set/.test(code('lib/storage/index.ts')),
+    'if the toast owned the grant, a fast dismiss would cost the player a coin');
+});
+
+group('purchases', () => {
+  /**
+   * ── Entitlements write ownership; nothing reads it from the network ─────
+   * `systems/storage-persistence.md` §7. The failure this guards is subtle and
+   * expensive: a screen that awaits `getCustomerInfo()` before deciding
+   * whether to render a board is blank on a train, and tells someone who paid
+   * that they did not.
+   */
+  const purchases = code('lib/purchases.ts');
+  const packScreen = code('app/pack/[id].tsx');
+  const packLevel = code('app/pack-level/[id]/[n].tsx');
+
+  ok('only lib/purchases.ts imports the RevenueCat SDK',
+    !/react-native-purchases/.test(packScreen + packLevel + code('app/shop.tsx') + code('hooks/use-level.ts')),
+    'a second import is a second place ownership can be decided');
+  ok('the pack board reads ownership from storage, synchronously',
+    packLevel.includes('ownsPack(') && !/await .*[Cc]ustomerInfo/.test(packLevel),
+    'a board that waits on the network is a board that is blank offline');
+  ok('entitlements grant packs and never revoke them',
+    purchases.includes('grantPack(') && !/revokePack|removePack|clearPacks/.test(purchases),
+    'an empty response usually means offline, not refunded');
+  ok('coins are credited from the product actually purchased',
+    /COIN_GRANTS\[pkg\.product\.identifier\]/.test(purchases),
+    'keying off the requested package would let a mismatched id mint coins');
+  ok('no virtual-currency balance is read back',
+    !/getVirtualCurrencies|invalidateVirtualCurrenciesCache/.test(purchases),
+    'coins are local; a second source of truth for one number is how they drift');
+  ok('the secret RevenueCat key is nowhere in the app',
+    !/sk_[A-Za-z0-9]/.test(purchases + code('app/_layout.tsx')),
+    'the sk_ key can move money and must never ship in a binary');
+});
+
 console.log(
   `\n${failures === 0 ? '✓' : '✗'} ${checks - failures}/${checks} checks passed\n`
 );

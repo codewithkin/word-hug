@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorView } from '@/components/error-view';
 import { AppThemeProvider } from '@/contexts/app-theme-context';
 import { initNotifications, onNudgeTapped, refreshDailyNudges } from '@/lib/notifications';
+import { configurePurchases, watchEntitlements } from '@/lib/purchases';
 import { initStorage } from '@/lib/storage';
 import { FONT_MAP } from '@/theme/fonts';
 
@@ -109,6 +110,32 @@ export default function RootLayout() {
    * any permission is requested, whereas this one needs permission to already
    * exist. Both are cheap and idempotent.
    */
+  /**
+   * Configure RevenueCat and keep `packs.owned` in step for the session.
+   *
+   * Deliberately fire-and-forget with no loading state. Nothing in the app
+   * waits on the store: ownership is read synchronously from MMKV during
+   * render, and this effect's only job is to fold newer truth into it when the
+   * network gets round to answering. A store outage costs a player nothing.
+   */
+  useEffect(() => {
+    let unwatch: (() => void) | null = null;
+    let cancelled = false;
+
+    void configurePurchases().then((ok) => {
+      if (!ok || cancelled) return;
+      return watchEntitlements(() => {}).then((off) => {
+        if (cancelled) off?.();
+        else unwatch = off;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      unwatch?.();
+    };
+  }, []);
+
   useEffect(() => {
     void refreshDailyNudges();
 

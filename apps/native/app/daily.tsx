@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
 import { CoinPill } from '@/components/coin-pill';
+import { GameActions, GameBoard } from '@/components/game-board';
 import { Appear, Breathe, Land, STAGGER } from '@/components/motion';
 import { GuessNote } from '@/components/notice';
 import { PuzzleGround } from '@/components/puzzle-ground';
@@ -165,6 +166,9 @@ export default function DailyPuzzle() {
     coins,
     streak,
     canSubmit,
+    shakeTrigger,
+    correctAt,
+    category,
     press,
     backspace,
     submit,
@@ -199,10 +203,6 @@ export default function DailyPuzzle() {
   }
 
   const length = puzzle.answer.length;
-  // Five 56px tiles is the design. Six of them overflow 360dp, so past five
-  // they narrow — every answer in the bundled bank up to five letters renders
-  // exactly as drawn.
-  const tileWidth = length > 5 ? 46 : 56;
   const answered = phase === 'done';
 
   return (
@@ -274,130 +274,24 @@ export default function DailyPuzzle() {
           />
         ) : (
           <>
-            {/* ── The three clues ─────────────────────────────────────── */}
-            <View className="flex-1 justify-center gap-3 px-[22px] pt-[6px]">
-              {clues.map((clue, i) => (
-                <Appear key={clue} index={i} delay={IN.clues}>
-                  <Chunky
-                    offset={4}
-                    shadowVar="--color-wh-clue-card-shadow"
-                    className="h-[70px] flex-row items-center justify-between rounded-wh-xl bg-wh-clue-card pl-[22px] pr-4"
-                  >
-                    <Text className="font-wh-bold text-wh-display tracking-[0.01em] text-wh-clue-text">
-                      {clue}
-                    </Text>
-                    <View className="h-[46px] w-[46px] items-center justify-center rounded-wh-md border-[2.5px] border-dashed border-wh-clue-slot-border bg-wh-clue-slot">
-                      <Text className="font-wh-bold text-wh-xxl text-wh-clue-slot-text">?</Text>
-                    </View>
-                  </Chunky>
-                </Appear>
-              ))}
-            </View>
-
-            {/* ── The answer tiles ────────────────────────────────────── */}
-            <View className="h-[96px] flex-row items-center justify-center gap-[9px]">
-              {Array.from({ length }, (_, i) => {
-                const letter = typed[i];
-                const isCaret = i === typed.length;
-
-                if (letter !== undefined) {
-                  return (
-                    <Chunky
-                      key={i}
-                      offset={4}
-                      shadowVar="--color-wh-answer-tile-shadow"
-                      style={{ width: tileWidth }}
-                      className="h-16 items-center justify-center rounded-wh-card bg-wh-answer-tile"
-                    >
-                      {/*
-                        A letter lands rather than appears: it drops the last
-                        few pixels and settles. This is the one moment in the
-                        loop where the interface is allowed a little life,
-                        because it is the only one that is unambiguously good
-                        news — the player did something and it worked.
-
-                        Keyed on the letter AND the position, so backspacing to
-                        retype the same letter in the same slot replays the
-                        landing instead of silently reusing the node.
-                      */}
-                      <Land key={`${letter}-${i}`}>
-                        <Text className="font-wh-bold text-wh-display text-wh-answer-tile-text">
-                          {letter}
-                        </Text>
-                      </Land>
-                    </Chunky>
-                  );
-                }
-
-                if (isCaret) {
-                  return (
-                    <Chunky
-                      key={i}
-                      offset={4}
-                      shadowVar="--color-wh-answer-tile-active-shadow"
-                      style={{ width: tileWidth }}
-                      className="h-16 items-center justify-center rounded-wh-card border-[3px] border-wh-primary bg-wh-answer-tile-active"
-                    >
-                      {/* Not a blinking cursor: a still amber bar that
-                          breathes. Nothing here may imply a clock (rule 1). */}
-                      <Breathe>
-                        <View className="h-[30px] w-[3px] rounded-[2px] bg-wh-primary" />
-                      </Breathe>
-                    </Chunky>
-                  );
-                }
-
-                return (
-                  <Appear key={i} index={i} delay={IN.tiles} rise={4}>
-                    <Chunky
-                      offset={3}
-                      inset
-                      shadowVar="--color-wh-answer-tile-empty-shadow"
-                      style={{ width: tileWidth }}
-                      className="h-16 rounded-wh-card bg-wh-answer-tile-empty"
-                    />
-                  </Appear>
-                );
-              })}
-            </View>
-
-            {/* ── Letter keys ─────────────────────────────────────────── */}
-            <View className="h-[74px] flex-row items-center justify-center gap-2 px-[22px]">
-              {keys.map((key, i) => {
-                const spent = used.has(key);
-                return (
-                  <Appear key={key} index={i} delay={IN.keys} rise={6} className="flex-1">
-                    {/* A spent key dims and stays tappable — an answer with a
-                        repeated letter needs it pressed twice, and a key that
-                        went dead would look like a bug. */}
-                    <ChunkyPressable
-                      offset={3}
-                      shadowVar={
-                        spent ? '--color-wh-key-cap-dim-shadow' : '--color-wh-key-cap-shadow'
-                      }
-                      onPress={() => press(key)}
-                      accessibilityRole="button"
-                      accessibilityLabel={spent ? `Letter ${key}, already used` : `Letter ${key}`}
-                      className={
-                        spent
-                          ? 'h-14 items-center justify-center rounded-[15px] bg-wh-key-cap-dim'
-                          : 'h-14 items-center justify-center rounded-[15px] bg-wh-key-cap'
-                      }
-                    >
-                      <Text
-                        className={
-                          spent
-                            ? 'font-wh-bold text-wh-h2 text-wh-key-cap-dim-text'
-                            : 'font-wh-bold text-wh-h2 text-wh-key-cap-text'
-                        }
-                      >
-                        {key}
-                      </Text>
-                    </ChunkyPressable>
-                  </Appear>
-                );
-              })}
-            </View>
+            <GameBoard
+              clues={clues}
+              category={category}
+              length={length}
+              typed={typed}
+              keys={keys}
+              used={used}
+              coins={coins}
+              canSubmit={canSubmit}
+              shakeTrigger={shakeTrigger}
+              correctAt={correctAt}
+              onKey={press}
+              onBackspace={backspace}
+              onSubmit={submit}
+              onHint={() =>
+                router.push({ pathname: '/nudge-picker', params: { puzzleId: puzzle.id } })
+              }
+            />
 
             {/* ── The note after a guess ──────────────────────────────── */}
             {note ? (
@@ -410,76 +304,15 @@ export default function DailyPuzzle() {
               <View className="h-[44px]" />
             )}
 
-            {/* ── Hint, HUG IT, backspace ─────────────────────────────── */}
-            <Appear
-              delay={IN.actions}
-              rise={12}
-              className="flex-row items-center gap-[10px] px-[22px] pb-[6px]"
-            >
-              <ChunkyPressable
-                offset={4}
-                shadowVar="--color-wh-surface-shadow"
-                onPress={() =>
-                  router.push({ pathname: '/nudge-picker', params: { puzzleId: puzzle.id } })
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Hint"
-                className="h-[58px] w-[58px] items-center justify-center rounded-[19px] bg-wh-surface"
-              >
-                <Chunky
-                  offset={-3}
-                  inset
-                  shadowVar="--color-wh-hint-glyph-shadow"
-                  className="h-5 w-4 rounded-b-[4px] rounded-t-[8px] bg-wh-primary"
-                />
-                <Chunky
-                  offset={2}
-                  shadowVar="--color-wh-badge-shadow"
-                  className="absolute -right-1 -top-1 h-5 min-w-5 items-center justify-center rounded-wh-pill bg-wh-highlight"
-                >
-                  {/* 11px, not the 11.5px `micro` token — this badge is the one
-                      place the designs use it, so it uses its own value. */}
-                  <Text className="font-wh-heavy text-[11px] text-white">{coins}</Text>
-                </Chunky>
-              </ChunkyPressable>
-
-              {/*
-                HUG IT stays amber and stays pressable when the word is short.
-                The alternative — greying it out — is the reflexive choice and
-                is wrong here: a disabled primary button is the interface
-                telling someone they have not done enough yet, and this product
-                does not have a vocabulary for that (rule 1). Pressing it early
-                simply does nothing.
-              */}
-              <ChunkyPressable
-                offset={5}
-                shadowVar="--color-wh-primary-shadow"
-                onPress={submit}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !canSubmit }}
-                accessibilityLabel={
-                  canSubmit ? 'Hug it' : 'Hug it, not enough letters yet'
-                }
-                className="h-[58px] flex-1 items-center justify-center rounded-[19px] bg-wh-primary"
-              >
-                <Text className="font-wh-bold text-wh-xxl tracking-wh-wide text-wh-on-primary">
-                  HUG IT
-                </Text>
-              </ChunkyPressable>
-
-              <ChunkyPressable
-                offset={4}
-                shadowVar="--color-wh-surface-shadow"
-                onPress={backspace}
-                accessibilityRole="button"
-                accessibilityLabel="Delete letter"
-                className="h-[58px] w-[58px] items-center justify-center rounded-[19px] bg-wh-surface"
-              >
-                <Text className="font-wh-bold text-wh-xxl text-wh-text-faint dark:text-wh-text-secondary">
-                  ⌫
-                </Text>
-              </ChunkyPressable>
-            </Appear>
+            <GameActions
+              coins={coins}
+              canSubmit={canSubmit}
+              onHint={() =>
+                router.push({ pathname: '/nudge-picker', params: { puzzleId: puzzle.id } })
+              }
+              onSubmit={submit}
+              onBackspace={backspace}
+            />
           </>
         )}
 

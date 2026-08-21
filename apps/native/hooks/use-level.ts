@@ -10,8 +10,8 @@ import {
   packLevelKey,
   type Level,
 } from '@/lib/levels';
-import { nudgeNote, type NudgeTier } from '@/lib/nudges';
-import { clueWords, compoundsFor, keysFor } from '@/lib/puzzles';
+import { categoryChip, nudgeNote, type NudgeTier } from '@/lib/nudges';
+import { clueWords, compoundsFor, correctPositions, keysFor } from '@/lib/puzzles';
 import {
   advanceStreakToday,
   getCoins,
@@ -71,6 +71,10 @@ export interface LevelGame {
   clues: string[];
   compounds: { clue: string; before: boolean }[];
   coins: number;
+  /** Slots the last wrong guess got right. Empty until one is made. */
+  correctAt: ReadonlySet<number>;
+  /** "a kind of bird" — printed on the board, always. Null before load. */
+  category: string | null;
   canSubmit: boolean;
   shakeTrigger: number;
   press: (letter: string) => void;
@@ -107,6 +111,15 @@ export function useLevel(n: number, packId?: string): LevelGame {
   const [phase, setPhase] = useState<LevelPhase>(unlocked ? 'playing' : 'locked');
   const [result, setResult] = useState<'wrong' | 'near' | null>(null);
   const [shakeTrigger, setShakeTrigger] = useState(0);
+  /**
+   * Slots the last wrong guess got right.
+   *
+   * Held as state rather than derived, because it must describe the guess that
+   * was *submitted*, not whatever is in the tiles now. Deriving it live would
+   * turn the board into a letter-by-letter oracle: type a letter, see it go
+   * teal, keep it. That is a different game, and a much worse one.
+   */
+  const [correctAt, setCorrectAt] = useState<Set<number>>(() => new Set());
 
   const [coins, setCoins] = useState(getCoins);
   const [nudgeTier, setNudgeTierState] = useState<NudgeTier>(() =>
@@ -146,6 +159,14 @@ export function useLevel(n: number, packId?: string): LevelGame {
     (letter: string) => {
       if (phase === 'solved' || phase === 'locked') return;
       if (typed.length >= length) return;
+      // Typing into a slot invalidates what the last guess said about it, and
+      // about nothing else — the marks on untouched slots still hold.
+      setCorrectAt((prev) => {
+        if (!prev.has(typed.length)) return prev;
+        const next = new Set(prev);
+        next.delete(typed.length);
+        return next;
+      });
       setTyped(typed + letter);
       setPhase('playing');
       setResult(null);
@@ -157,6 +178,12 @@ export function useLevel(n: number, packId?: string): LevelGame {
   const backspace = useCallback(() => {
     if (phase === 'solved' || phase === 'locked') return;
     if (typed.length === 0) return;
+    setCorrectAt((prev) => {
+      if (!prev.has(typed.length - 1)) return prev;
+      const next = new Set(prev);
+      next.delete(typed.length - 1);
+      return next;
+    });
     setTyped(typed.slice(0, -1));
     setPhase('playing');
     setResult(null);
@@ -184,6 +211,9 @@ export function useLevel(n: number, packId?: string): LevelGame {
 
     setResult(graded);
     setPhase('guessed');
+    // Feedback about the guess just made. Computed against the canonical
+    // answer, so an accepted variant does not light up the wrong slots.
+    setCorrectAt(correctPositions(level.answer, typed));
     // Counted, never charged. A near miss is not a wrong answer and does not
     // count — it is the player being right about the shape and wrong about one
     // letter, which the difficulty model reads very differently.
@@ -218,6 +248,8 @@ export function useLevel(n: number, packId?: string): LevelGame {
     clues,
     compounds,
     coins,
+    correctAt,
+    category: level ? categoryChip(level) : null,
     canSubmit: typed.length === length && length > 0,
     shakeTrigger,
     press,

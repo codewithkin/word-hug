@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,7 +10,9 @@ import { PuzzleGround } from '@/components/puzzle-ground';
 import { ScreenHeader } from '@/components/screen-header';
 import { BUNDLE, PACKS } from '@/content/packs';
 import { packLevelCount } from '@/lib/levels';
+import { buy, loadShop, purchasesAvailable, type Shop } from '@/lib/purchases';
 import { getCoins, getOwnedPacks } from '@/lib/storage';
+import { useToast } from '@/components/toast';
 
 /**
  * ── 15 Shop ───────────────────────────────────────────────────────────────
@@ -29,18 +31,26 @@ import { getCoins, getOwnedPacks } from '@/lib/storage';
  * puzzle is free, always, forever (rule 2), and this is the one screen where
  * saying so out loud costs something. That is why it is here.
  *
- * ── Nothing on this screen can actually be bought ─────────────────────────
- * `react-native-purchases` is installed and unconfigured, and **every price
- * here is a hard-coded placeholder that must come from RevenueCat before
- * release.** Buying routes to `/store-unreachable`, which is true, honest, and
- * a screen the player can leave — unlike a dead button or a fake success.
+ * ── Buying (session 8) ────────────────────────────────────────────────────
+ * Wired to RevenueCat. Prices come from `priceString`, which is already in the
+ * customer's own currency and formatted the way their store formats money —
+ * the hard-coded strings below survive only as the offline fallback, so the
+ * shop still renders on a train instead of showing blank cards.
+ *
+ * `/store-unreachable` is still here and still correct: it is what a player
+ * sees when the SDK could not be configured at all, which is a real state and
+ * one they can leave.
+ *
+ * A cancelled purchase says nothing. Someone who reached the store sheet and
+ * changed their mind has done an ordinary thing, and an error toast for it
+ * would be the shop telling them off.
  */
 
-/** Placeholders. RevenueCat owns these. Same three as `/zero-coin`. */
+/** Fallback prices only — real ones come from RevenueCat. Same as `/zero-coin`. */
 const COIN_TIERS = [
-  { coins: '5', price: '£0.99', productId: 'wh_coins_5' },
-  { coins: '15', price: '£2.49', productId: 'wh_coins_15' },
-  { coins: '50', price: '£6.99', productId: 'wh_coins_50' },
+  { coins: '5', price: '£0.99', productId: 'wordhug_coins_5' },
+  { coins: '15', price: '£2.49', productId: 'wordhug_coins_15' },
+  { coins: '50', price: '£6.99', productId: 'wordhug_coins_50' },
 ];
 
 export default function Shop() {
@@ -55,6 +65,9 @@ export default function Shop() {
   const [coins, setCoins] = useState(getCoins);
   const [owned, setOwned] = useState<string[]>(getOwnedPacks);
   const [offline, setOffline] = useState(false);
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const { toast, show, node: toastNode } = useToast();
 
   useFocusEffect(
     useCallback(() => {
@@ -63,8 +76,53 @@ export default function Shop() {
     }, [])
   );
 
-  function buy() {
-    router.push('/store-unreachable');
+  // Offerings are fetched once per mount rather than on every focus: prices do
+  // not change while someone is deciding, and a refetch on focus would make
+  // the card prices flicker every time the pack page is dismissed.
+  useEffect(() => {
+    let live = true;
+    void loadShop().then((s) => {
+      if (!live) return;
+      setShop(s);
+      setOffline(Object.keys(s.packs).length === 0 && Object.keys(s.coins).length === 0);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  /** RevenueCat's price when we have it, the bundled string when we do not. */
+  function priceOf(packageId: string | undefined, fallback: string) {
+    if (!shop || !packageId) return fallback;
+    const all = [...Object.values(shop.packs), ...Object.values(shop.coins), shop.bundle];
+    return all.find((i) => i?.packageId === packageId)?.price ?? fallback;
+  }
+
+  async function purchase(packageId: string | undefined, label: string) {
+    if (!purchasesAvailable() || !packageId) {
+      router.push('/store-unreachable');
+      return;
+    }
+    if (busy) return;
+
+    setBusy(packageId);
+    const result = await buy(packageId);
+    setBusy(null);
+
+    setCoins(getCoins());
+    setOwned(getOwnedPacks());
+
+    if (result.status === 'purchased') {
+      show({ message: `${label} — thank you`, tone: 'done' });
+      return;
+    }
+    // A cancellation is a decision, not a failure. Say nothing.
+    if (result.status === 'cancelled') return;
+    if (result.status === 'unavailable') {
+      router.push('/store-unreachable');
+      return;
+    }
+    show({ message: result.message });
   }
 
   const unowned = PACKS.filter((p) => !owned.includes(p.id));
@@ -113,9 +171,9 @@ export default function Shop() {
                   key={tier.coins}
                   offset={4}
                   shadowVar="--color-wh-surface-shadow"
-                  onPress={buy}
+                  onPress={() => void purchase(shop?.coins[tier.coins]?.packageId ?? tier.productId, `${tier.coins} coins`)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${tier.coins} coins for ${tier.price}`}
+                  accessibilityLabel={`${tier.coins} coins for ${priceOf(shop?.coins[tier.coins]?.packageId, tier.price)}`}
                   className="flex-1 items-center gap-[5px] rounded-[18px] bg-wh-surface py-[13px]"
                 >
                   <Chunky
@@ -126,7 +184,7 @@ export default function Shop() {
                   />
                   <Text className="font-wh-bold text-[19px] text-wh-clue-text">{tier.coins}</Text>
                   <Text className="font-wh-heavy text-[12.5px] text-wh-text-muted dark:text-wh-text-quiet">
-                    {tier.price}
+                    {priceOf(shop?.coins[tier.coins]?.packageId, tier.price)}
                   </Text>
                 </ChunkyPressable>
               ))}
@@ -149,7 +207,7 @@ export default function Shop() {
                       router.push({ pathname: '/pack/[id]', params: { id: pack.id } })
                     }
                     accessibilityRole="button"
-                    accessibilityLabel={`${pack.name}, ${pack.price}. See what's in it.`}
+                    accessibilityLabel={`${pack.name}, ${priceOf(shop?.packs[pack.id]?.packageId, pack.price)}. See what's in it.`}
                     className="flex-row items-center gap-4 rounded-wh-xl bg-wh-surface px-5 py-4"
                   >
                     <View className="flex-1 gap-[2px]">
@@ -166,7 +224,7 @@ export default function Shop() {
                       className="rounded-wh-sm bg-wh-primary px-3 py-[5px]"
                     >
                       <Text className="font-wh-bold text-wh-base text-wh-on-primary">
-                        {pack.price}
+                        {priceOf(shop?.packs[pack.id]?.packageId, pack.price)}
                       </Text>
                     </Chunky>
                   </ChunkyPressable>
@@ -178,16 +236,16 @@ export default function Shop() {
                 <ChunkyPressable
                   offset={4}
                   shadowVar="--color-wh-accent-shadow"
-                  onPress={buy}
+                  onPress={() => void purchase(shop?.bundle?.packageId ?? BUNDLE.packageId, BUNDLE.name)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${BUNDLE.name} for ${BUNDLE.price}`}
+                  accessibilityLabel={`${BUNDLE.name} for ${priceOf(shop?.bundle?.packageId, BUNDLE.price)}`}
                   className="flex-row items-center justify-between rounded-wh-xl bg-wh-accent px-5 py-4"
                 >
                   <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
                     {BUNDLE.name}
                   </Text>
                   <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
-                    {BUNDLE.price}
+                    {priceOf(shop?.bundle?.packageId, BUNDLE.price)}
                   </Text>
                 </ChunkyPressable>
               ) : null}
@@ -237,6 +295,8 @@ export default function Shop() {
             </Text>
           </Appear>
         </ScrollView>
+
+        {toast ? toastNode : null}
       </View>
     </View>
   );

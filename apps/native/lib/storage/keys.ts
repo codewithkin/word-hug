@@ -36,6 +36,8 @@ export const PREFS = {
 export const PROGRESS = {
   schemaVersion: 'schemaVersion',
   coinBalance: 'coins.balance',
+  /** Local date of the last daily gift coin. See `claimDailyCoin`. */
+  coinDailyDate: 'coins.dailyGiftDate',
   solves: 'solves',
   nudges: 'nudges',
   streakCurrent: 'streak.current',
@@ -54,6 +56,16 @@ export const PROGRESS = {
 
 /** 3 free coins on install — `storage-persistence.md` §3.2. */
 export const INSTALL_COIN_GRANT = 3;
+
+/**
+ * The daily gift, session 8b.
+ *
+ * One. Enough to buy a first-letter hint every day, which is the rung that
+ * actually rescues someone, and not enough to make the shop pointless — the
+ * whole-answer rung still costs two, so a saved-up gift is a real choice
+ * rather than an inevitability.
+ */
+export const DAILY_COIN_GRANT = 1;
 
 /** `prefs.reminderTime` default, local `HH:mm`. */
 export const DEFAULT_REMINDER_TIME = '09:00';

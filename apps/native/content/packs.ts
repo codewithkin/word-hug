@@ -33,10 +33,34 @@ export interface Pack {
   id: string;
   name: string;
   blurb: string;
-  /** Placeholder. RevenueCat owns this before release. */
+  /**
+   * **Fallback only.** The real price comes from RevenueCat's `priceString`,
+   * which is already localised and in the customer's own currency — see
+   * `lib/purchases.ts`. This value is shown when offerings have not loaded
+   * yet, so the shop can render offline instead of showing blank cards.
+   */
   price: string;
-  /** RevenueCat product identifier, for when it is wired. */
+  /** Store product identifier. Must match the RevenueCat dashboard exactly. */
   productId: string;
+  /**
+   * RevenueCat **entitlement** identifier — the thing that actually decides
+   * whether this pack is unlocked.
+   *
+   * Products are what you buy; entitlements are what you then have. Ownership
+   * is always read from `customerInfo.entitlements.active`, never from the
+   * product, because the bundle grants five packs through one purchase and a
+   * product-based check would miss four of them.
+   *
+   * ⚠️ These strings are the identifiers as they exist in the dashboard today,
+   * **including the spaces and the inconsistent capitalisation**. They are
+   * matched literally by the SDK. If they are ever tidied up to
+   * `pack_kitchen`-style slugs — which they should be, before launch — this
+   * map is the only place in the app that has to change, but it MUST change at
+   * the same moment or every pack silently locks itself.
+   */
+  entitlementId: string;
+  /** 960×540 promo art. Name and price are drawn over it, never baked in. */
+  art: number;
   /**
    * The pack's accent, drawn from tokens that already exist.
    *
@@ -56,17 +80,54 @@ export interface Pack {
   };
 }
 
-/** The five accents. Four are existing tokens; `nightfall` is the one new pair. */
+/**
+ * The five accents, taken from the delivered pack art.
+ *
+ * ── Why these changed in session 8 ────────────────────────────────────────
+ * They were originally borrowed from existing UI tokens — coral for Kitchen,
+ * teal for Outdoors, amber for Creatures — because there was no art and
+ * recolouring from the palette was the honest way to fake a set.
+ *
+ * The art now exists (`assets/images/packs/`), and its README is explicit:
+ * "Each pack's tint pair doubles as its card and detail-header colour in the
+ * app." So the tints are the art's colours, not the token palette's. A card
+ * whose header is teal sitting above a moss-green illustration is the kind of
+ * mismatch that reads as a bug even when nobody can name it.
+ *
+ * Written as literals rather than promoted to tokens because they are pack
+ * identity, not interface colour — nothing outside a pack may use them, and
+ * putting them in the token file would invite exactly that.
+ */
 const TINTS = {
-  amber: { fill: 'bg-wh-primary', on: 'text-wh-on-primary', shadowVar: '--color-wh-primary-shadow' },
-  teal: { fill: 'bg-wh-accent', on: 'text-wh-on-accent', shadowVar: '--color-wh-accent-shadow' },
-  coral: { fill: 'bg-wh-highlight', on: 'text-white', shadowVar: '--color-wh-streak-dot-shadow' },
-  // #6E5AB8 / #4A3193 — a purple that exists in dark as `answerTileActive` and
-  // has no light counterpart, so the light value is written here. One pack,
-  // one pairing; promote it to a token if a second use turns up.
-  violet: { fill: 'bg-[#6E5AB8]', on: 'text-white', shadowVar: '--color-wh-surface-shadow' },
-  slate: { fill: 'bg-[#3E5266]', on: 'text-white', shadowVar: '--color-wh-surface-shadow' },
+  /** paprika — pack-kitchen.png */
+  kitchen: { fill: 'bg-[#C4432A]', on: 'text-white', shadowVar: '--color-wh-streak-dot-shadow' },
+  /** moss — pack-outdoors.png */
+  outdoors: { fill: 'bg-[#3F7D4E]', on: 'text-white', shadowVar: '--color-wh-accent-shadow' },
+  /** plum — pack-creatures.png */
+  creatures: { fill: 'bg-[#9B4A7E]', on: 'text-white', shadowVar: '--color-wh-badge-shadow' },
+  /** slate — pack-workshop.png */
+  workshop: { fill: 'bg-[#5E7288]', on: 'text-white', shadowVar: '--color-wh-surface-shadow' },
+  /** indigo — pack-nightfall.png */
+  nightfall: { fill: 'bg-[#4A3193]', on: 'text-white', shadowVar: '--color-wh-surface-shadow' },
 } as const;
+
+/**
+ * The promo art, 960×540.
+ *
+ * `require` rather than a URI: these are bundled, and a static require is what
+ * lets Metro fingerprint them into the binary. A dynamic path would resolve to
+ * undefined at runtime with no build error.
+ */
+const ART = {
+  kitchen: require('@/assets/images/packs/pack-kitchen.png'),
+  outdoors: require('@/assets/images/packs/pack-outdoors.png'),
+  creatures: require('@/assets/images/packs/pack-creatures.png'),
+  workshop: require('@/assets/images/packs/pack-workshop.png'),
+  nightfall: require('@/assets/images/packs/pack-nightfall.png'),
+} as const;
+
+/** The bundle's own art: all five fanned, on cream. */
+export const BUNDLE_ART = require('@/assets/images/packs/pack-bundle.png');
 
 export const PACKS: Pack[] = [
   {
@@ -74,40 +135,50 @@ export const PACKS: Pack[] = [
     name: 'Kitchen Table',
     blurb: 'Fifty about food, the kettle and the washing up.',
     price: '£1.99',
-    productId: 'wh_pack_kitchen',
-    tint: TINTS.coral,
+    productId: 'wordhug_pack_kitchen',
+    entitlementId: 'Kitchen',
+    tint: TINTS.kitchen,
+    art: ART.kitchen,
   },
   {
     id: 'outdoors',
     name: 'Out of Doors',
     blurb: 'Weather, water and things that grow. Fifty to take outside.',
     price: '£1.99',
-    productId: 'wh_pack_outdoors',
-    tint: TINTS.teal,
+    productId: 'wordhug_pack_outdoors',
+    entitlementId: 'Outdoor pack',
+    tint: TINTS.outdoors,
+    art: ART.outdoors,
   },
   {
     id: 'creatures',
     name: 'Creatures',
     blurb: 'Fifty with something living in them — animals, and the bodies they come in.',
     price: '£1.99',
-    productId: 'wh_pack_creatures',
-    tint: TINTS.amber,
+    productId: 'wordhug_pack_creatures',
+    entitlementId: 'Creatures pack',
+    tint: TINTS.creatures,
+    art: ART.creatures,
   },
   {
     id: 'workshop',
     name: 'The Workshop',
     blurb: 'Tools, materials and the shed. Fifty with their sleeves rolled up.',
     price: '£1.99',
-    productId: 'wh_pack_workshop',
-    tint: TINTS.violet,
+    productId: 'wordhug_pack_workshop',
+    entitlementId: 'Workshop pack',
+    tint: TINTS.workshop,
+    art: ART.workshop,
   },
   {
     id: 'nightfall',
     name: 'Nightfall',
     blurb: 'The indoor evening. Fifty quieter ones, and a little harder.',
     price: '£2.49',
-    productId: 'wh_pack_nightfall',
-    tint: TINTS.slate,
+    productId: 'wordhug_pack_nightfall',
+    entitlementId: 'Nightfall pack',
+    tint: TINTS.nightfall,
+    art: ART.nightfall,
   },
 ];
 
@@ -116,7 +187,17 @@ export const BUNDLE = {
   id: 'pack-bundle',
   name: 'All five packs',
   price: '£7.99',
-  productId: 'wh_pack_bundle',
+  productId: 'wordhug_pack_bundle',
+  /**
+   * The bundle has **no entitlement of its own**, deliberately.
+   *
+   * Buying it must grant the same five entitlements the individual packs
+   * grant, which is done in the dashboard by attaching the bundle product to
+   * each of the five pack entitlements. A separate "bundle" entitlement would
+   * mean the app had two different ways to be told it owns Kitchen, and the
+   * two would eventually disagree.
+   */
+  packageId: 'wordhug_packs_all',
 };
 
 export function packById(id: string): Pack | undefined {

@@ -219,6 +219,29 @@ export function clueWords(puzzle: Puzzle): string[] {
   return puzzle.words.map((w) => w.text.toUpperCase());
 }
 
+/**
+ * Which typed positions hold the right letter.
+ *
+ * Session 8b. Feedback on a wrong guess, not a hint: it describes the guess
+ * the player just made rather than the answer they have not. Correct-position
+ * only — no Wordle-style "right letter, wrong place" — because the keyboard is
+ * already only six letters, and adding presence information on top of that
+ * would make most levels solvable by elimination without reading the clues.
+ *
+ * Compared against the canonical answer rather than an accepted variant: a
+ * variant is a different string, and marking positions against one the player
+ * is not typing would light up the wrong slots.
+ */
+export function correctPositions(answer: string, typed: string): Set<number> {
+  const target = answer.toUpperCase();
+  const guess = typed.toUpperCase();
+  const out = new Set<number>();
+  for (let i = 0; i < guess.length && i < target.length; i++) {
+    if (guess[i] === target[i]) out.add(i);
+  }
+  return out;
+}
+
 /** What the solve celebration spells out: which side each clue joins on. */
 export function compoundsFor(puzzle: Puzzle): { clue: string; before: boolean }[] {
   return puzzle.words.map((w) => ({ clue: w.text.toUpperCase(), before: w.position === 'before' }));

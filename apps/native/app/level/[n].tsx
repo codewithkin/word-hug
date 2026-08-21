@@ -58,6 +58,8 @@ export default function LevelScreen() {
     compounds,
     canSubmit,
     shakeTrigger,
+    correctAt,
+    category,
     press,
     backspace,
     submit,
@@ -130,6 +132,7 @@ export default function LevelScreen() {
 
         <GameBoard
           clues={clues}
+          category={category}
           length={level.answer.length}
           typed={typed}
           keys={keys}
@@ -137,6 +140,7 @@ export default function LevelScreen() {
           coins={coins}
           canSubmit={canSubmit}
           shakeTrigger={shakeTrigger}
+          correctAt={correctAt}
           onKey={press}
           onBackspace={backspace}
           onSubmit={submit}

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
@@ -85,10 +85,23 @@ export default function PackList() {
                   }
                   className={
                     has
-                      ? 'gap-1 rounded-wh-xl bg-wh-clue-card px-5 py-[18px]'
-                      : 'gap-1 rounded-wh-xl bg-wh-surface px-5 py-[18px]'
+                      ? 'overflow-hidden rounded-wh-xl bg-wh-clue-card'
+                      : 'overflow-hidden rounded-wh-xl bg-wh-surface'
                   }
                 >
+                  {/* The art, 960×540, cropped to a 16:7 band.
+                      `overflow-hidden` on the pressable rather than a radius on
+                      the Image: Android ignores `borderRadius` on an Image with
+                      `resizeMode="cover"`, and the corner would square off on
+                      exactly one platform. */}
+                  <Image
+                    source={pack.art}
+                    resizeMode="cover"
+                    className="h-[104px] w-full"
+                    accessible={false}
+                  />
+
+                  <View className="gap-1 px-5 py-[16px]">
                   <View className="flex-row items-center gap-3">
                     <Text className="flex-1 font-wh-bold text-wh-lg text-wh-clue-text">
                       {pack.name}
@@ -119,6 +132,7 @@ export default function PackList() {
                   <Text className="font-wh-regular text-[14.5px] leading-[20px] text-wh-chip-text">
                     {pack.blurb}
                   </Text>
+                  </View>
                 </ChunkyPressable>
               </Appear>
             );

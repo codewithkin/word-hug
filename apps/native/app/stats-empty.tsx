@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChunkyPressable } from '@/components/chunky';
+import { Illustration } from '@/components/illustration';
 import { EmptyBody } from '@/components/empty-state';
 import { Appear } from '@/components/motion';
 import { PuzzleGround } from '@/components/puzzle-ground';
@@ -46,26 +47,6 @@ const TINTS = [
 /** Index into TINTS, in the design's own order. Not a gradient — a scatter. */
 const GRID = [0, 0, 1, 2, 1, 2, 2, 3];
 
-function HeatmapGhost() {
-  // The design is a 4-column CSS grid. React Native has no grid, and a
-  // wrapping flex row with percentage widths does not survive the 9px gaps —
-  // four items at 23.5% plus three gaps overflow a 326pt column and silently
-  // reflow to three per row. Two explicit rows of four flexed children give
-  // the same result and cannot drift.
-  const rows = [GRID.slice(0, 4), GRID.slice(4)];
-
-  return (
-    <View className="w-full gap-[9px]">
-      {rows.map((row, r) => (
-        <View key={r} className="flex-row gap-[9px]">
-          {row.map((tint, i) => (
-            <View key={i} className={`h-[44px] flex-1 rounded-wh-md ${TINTS[tint]}`} />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 export default function StatsEmpty() {
   const insets = useSafeAreaInsets();
@@ -79,7 +60,7 @@ export default function StatsEmpty() {
 
         <EmptyBody
           inset={32}
-          ornament={<HeatmapGhost />}
+          ornament={<Illustration name="update" />}
           title="Nothing to show yet"
           body="Solve today's puzzle and this fills in — one square at a time."
         />

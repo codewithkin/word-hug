@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chunky, ChunkyPressable } from '@/components/chunky';
@@ -10,7 +10,9 @@ import { PuzzleGround } from '@/components/puzzle-ground';
 import { ScreenHeader } from '@/components/screen-header';
 import { packById } from '@/content/packs';
 import { packLevelCount, packLevelKey } from '@/lib/levels';
+import { buy, loadShop, purchasesAvailable, type Shop } from '@/lib/purchases';
 import { getLevelResults, ownsPack } from '@/lib/storage';
+import { useToast } from '@/components/toast';
 
 /**
  * ── 13 Pack Detail ────────────────────────────────────────────────────────
@@ -38,6 +40,17 @@ export default function PackDetail() {
 
   const [owned, setOwned] = useState(() => (pack ? ownsPack(pack.id) : false));
   const [results, setResults] = useState(getLevelResults);
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { toast, show, node: toastNode } = useToast();
+
+  useEffect(() => {
+    let live = true;
+    void loadShop().then((s) => live && setShop(s));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,6 +58,47 @@ export default function PackDetail() {
       setResults(getLevelResults());
     }, [pack])
   );
+
+  const item = pack ? shop?.packs[pack.id] : undefined;
+  /** RevenueCat's localised price, or the bundled fallback while offline. */
+  const price = item?.price ?? pack?.price ?? '';
+
+  /**
+   * The purchase, and the three things that are not failures.
+   *
+   * A cancellation says nothing — someone who opened the store sheet and
+   * backed out has made a choice. An unconfigured SDK goes to
+   * `/store-unreachable`, which is the honest screen and one they can leave.
+   * Only a real store error gets a toast.
+   */
+  async function unlock() {
+    if (!pack) return;
+    const packageId = item?.packageId ?? pack.productId;
+
+    if (!purchasesAvailable()) {
+      router.push('/store-unreachable');
+      return;
+    }
+    if (busy) return;
+
+    setBusy(true);
+    const result = await buy(packageId);
+    setBusy(false);
+
+    if (result.status === 'purchased') {
+      // Read back from storage rather than trusting the result: `buy` has
+      // already folded the entitlements in, and MMKV is the thing the rest of
+      // the app will consult a frame from now.
+      setOwned(ownsPack(pack.id));
+      return;
+    }
+    if (result.status === 'cancelled') return;
+    if (result.status === 'unavailable') {
+      router.push('/store-unreachable');
+      return;
+    }
+    show({ message: result.message });
+  }
 
   if (!pack) {
     return (
@@ -81,6 +135,25 @@ export default function PackDetail() {
       <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <ScreenHeader title={pack.name.toUpperCase()} />
 
+        {/* The hero. Full-bleed inside the 22px gutter, 16:7 like the list
+            card, so the two read as the same object at two sizes. The art
+            keeps a clear 28px margin by design — nothing is drawn over it
+            here, but the crop must not eat into that. */}
+        <Appear delay={40} className="px-[22px] pb-3">
+          <Chunky
+            offset={4}
+            shadowVar={pack.tint.shadowVar}
+            className="overflow-hidden rounded-wh-xl"
+          >
+            <Image
+              source={pack.art}
+              resizeMode="cover"
+              className="h-[150px] w-full"
+              accessible={false}
+            />
+          </Chunky>
+        </Appear>
+
         <Appear delay={60} className="items-center gap-2 px-[26px] pb-3">
           <Text className="text-center font-wh-regular text-[15px] leading-[21px] text-wh-chip-text">
             {pack.blurb}
@@ -91,6 +164,8 @@ export default function PackDetail() {
             </Text>
           ) : null}
         </Appear>
+
+        {toast ? toastNode : null}
 
         <ScrollView
           className="flex-1 px-[22px]"
@@ -148,16 +223,13 @@ export default function PackDetail() {
             <ChunkyPressable
               offset={5}
               shadowVar="--color-wh-primary-shadow"
-              // Not a real purchase — RevenueCat is unconfigured and every
-              // price is a placeholder. `/store-unreachable` is the honest
-              // screen for that, and it is one the player can leave.
-              onPress={() => router.push('/store-unreachable')}
+              onPress={() => void unlock()}
               accessibilityRole="button"
-              accessibilityLabel={`Buy ${pack.name} for ${pack.price}`}
+              accessibilityLabel={`Buy ${pack.name} for ${price}`}
               className="h-[58px] flex-row items-center justify-center gap-3 rounded-[19px] bg-wh-primary"
             >
               <Text className="font-wh-bold text-wh-xxl tracking-wh-wide text-wh-on-primary">
-                {pack.price}
+                {price}
               </Text>
               <Chunky
                 offset={0}
@@ -165,7 +237,7 @@ export default function PackDetail() {
                 className="h-[6px] w-[6px] rounded-wh-pill bg-wh-on-primary"
               />
               <Text className="font-wh-bold text-wh-xxl tracking-wh-wide text-wh-on-primary">
-                UNLOCK
+                {busy ? 'ONE MOMENT' : 'UNLOCK'}
               </Text>
             </ChunkyPressable>
           )}

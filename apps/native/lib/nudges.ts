@@ -14,10 +14,25 @@ import type { Puzzle } from '@/lib/puzzles';
  *
  * The shape of the ladder is the product's argument that help is not failure:
  *
- *  1. **A category for the answer** — free, forever, no coin, no limit. It is
- *     the rung most players will use and it costs them nothing.
+ *  1. ~~A category for the answer~~ — **retired in session 8b.** It was free
+ *     and it is now simply printed on the board, always, for every puzzle in
+ *     every bank. See below.
  *  2. **The first letter** — 1 coin.
  *  3. **The whole answer** — 2 coins.
+ *
+ * ── Why tier 1 went ───────────────────────────────────────────────────────
+ * It cost nothing and almost nobody would have taken it. It sat behind a `?`
+ * button, and a `?` button next to a coin balance reads as "this will charge
+ * you" no matter what the sheet says when you open it. The owner played the
+ * early levels and found them very hard without ever tapping it — which is the
+ * whole story: a free hint nobody taps is not a free hint, it is a free hint
+ * you have hidden.
+ *
+ * So the category moved onto the board itself (`components/game-board.tsx`)
+ * and stopped being something to buy. The tier numbering is deliberately
+ * **not** renumbered: `nudges` in MMKV stores these integers against puzzle
+ * ids, and shifting them would silently re-interpret every hint a player has
+ * already taken.
  *
  * They open in order. Tier 3 is not a paywall on tier 2; it is a queue, which
  * is why the picker says "Later" rather than "Locked" on an unreached rung and
@@ -38,7 +53,6 @@ export interface NudgeRung {
 }
 
 export const NUDGE_RUNGS: NudgeRung[] = [
-  { tier: 1, label: 'What kind of word it is', cost: 0 },
   { tier: 2, label: 'The letter it starts with', cost: 1 },
   { tier: 3, label: 'The whole answer', cost: 2 },
 ];
@@ -81,6 +95,39 @@ export function categoryLabel(puzzle: Puzzle): string {
 }
 
 /**
+ * The short form, for the chip printed on the board.
+ *
+ * `categoryLabel` is a sentence — "It's one of the elements — earth, air, fire
+ * or water" — which is right for a line of prose under the board and wrong for
+ * a small uppercase tracked chip above it, where it would shout and wrap onto
+ * three lines.
+ *
+ * Two maps rather than one derived from the other, because "It's a part of the
+ * body" → "PART OF THE BODY" is not a transformation any rule gets right for
+ * all fourteen.
+ */
+const CATEGORY_CHIPS: Record<string, string> = {
+  'category.animals': 'An animal',
+  'category.body': 'Part of the body',
+  'category.element': 'An element',
+  'category.food': 'Food or drink',
+  'category.home': 'Around the house',
+  'category.material': 'A material',
+  'category.nature': 'Out in nature',
+  'category.people': 'A person',
+  'category.places': 'A place',
+  'category.play': 'Something you play with',
+  'category.sky': 'Up in the sky',
+  'category.things': 'An everyday object',
+  'category.time': 'To do with time',
+  'category.weather': 'The weather',
+};
+
+export function categoryChip(puzzle: Puzzle): string {
+  return CATEGORY_CHIPS[puzzle.category] ?? 'An everyday word';
+}
+
+/**
  * What tier 2 reveals: the letter the ANSWER starts with.
  *
  * ── Say which word it belongs to ──────────────────────────────────────────
@@ -98,20 +145,28 @@ export function firstLetter(puzzle: Puzzle): string {
 }
 
 /**
- * The line under the board once a nudge has been taken.
+ * The line under the board once a hint has been taken.
  *
  * Tier 3 does not print the answer as a sentence — it fills the tiles instead,
  * which is what the player paid for, and saying it twice would be gloating.
+ *
+ * Tier 1 now returns null: the category is on the board above, and repeating
+ * it underneath would make the board look like it had given two hints when it
+ * had given one. A tier-1 value can still be in storage from before session 8b,
+ * so it is handled rather than assumed away.
  */
 export function nudgeNote(puzzle: Puzzle, tier: NudgeTier): string | null {
-  if (tier === 1) return categoryLabel(puzzle);
-  if (tier >= 2) {
-    return `${categoryLabel(puzzle)}, and the answer begins with ${firstLetter(puzzle)}`;
-  }
+  if (tier >= 2) return `The answer begins with ${firstLetter(puzzle)}`;
   return null;
 }
 
-/** The next rung a player can take, or null when all three are spent. */
+/**
+ * The next rung a player can take, or null when both are spent.
+ *
+ * `find` over the rungs rather than `current + 1`, because tier 1 no longer
+ * exists as a rung: a player at tier 0 must be offered tier 2, and arithmetic
+ * would offer them a rung that is not in the list.
+ */
 export function nextRung(current: NudgeTier): NudgeRung | null {
-  return NUDGE_RUNGS.find((r) => r.tier === current + 1) ?? null;
+  return NUDGE_RUNGS.find((r) => r.tier > current) ?? null;
 }

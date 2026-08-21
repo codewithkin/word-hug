@@ -22,6 +22,22 @@ import { Appear, Breathe, Land, STAGGER, Shake } from '@/components/motion';
  * ── What the caller supplies ──────────────────────────────────────────────
  * Only state and handlers. Every dimension, colour and animation timing lives
  * here, which is the property that stopped three copies drifting apart.
+ *
+ * ── Session 8b: two aids, in the core ─────────────────────────────────────
+ * The owner could not solve the early levels, and asked for both of these to
+ * be on everywhere rather than tuned per screen. Putting them here is what
+ * makes "everywhere" true — daily, the free run and the packs all render this
+ * component, so none of them can drift out of step.
+ *
+ * · **The category is always printed.** It used to be nudge tier 1, free but
+ *   hidden behind a `?` button that reads as "this will cost you". A free hint
+ *   nobody taps is not a free hint. It is now a line above the clues, and the
+ *   nudge ladder no longer sells it.
+ * · **Correct-position letters go teal after a wrong guess.** Feedback rather
+ *   than a hint: it tells you about the guess you made, not about the answer
+ *   you have not made. Teal is `--color-wh-accent`, the existing secondary —
+ *   no new "success green" was added, because the palette has no pure green
+ *   and one would have looked imported from another product.
  */
 
 const IN = {
@@ -35,6 +51,13 @@ export { IN as GAME_BOARD_TIMINGS };
 
 export interface GameBoardProps {
   clues: string[];
+  /**
+   * "a kind of bird" — printed above the clues, always.
+   *
+   * Optional so a board with no category (the onboarding tutorial) can omit
+   * the line entirely rather than render an empty one.
+   */
+  category?: string | null;
   /** How many letters the answer has. */
   length: number;
   /** What is in the tiles right now, uppercase. */
@@ -47,6 +70,14 @@ export interface GameBoardProps {
   canSubmit: boolean;
   /** Increments to shake the board on a wrong guess. */
   shakeTrigger?: number;
+  /**
+   * Positions confirmed correct by the last wrong guess.
+   *
+   * A set of indices rather than a string, because the marks belong to slots
+   * and not to letters — the same letter can be right in one slot and wrong in
+   * another, and the player needs to be told which.
+   */
+  correctAt?: ReadonlySet<number>;
   onKey: (letter: string) => void;
   onBackspace: () => void;
   onSubmit: () => void;
@@ -55,6 +86,7 @@ export interface GameBoardProps {
 
 export function GameBoard({
   clues,
+  category,
   length,
   typed,
   keys,
@@ -62,6 +94,7 @@ export function GameBoard({
   coins,
   canSubmit,
   shakeTrigger = 0,
+  correctAt,
   onKey,
   onBackspace,
   onSubmit,
@@ -77,6 +110,18 @@ export function GameBoard({
           Each carries the dashed "?" slot, which is the Daily screen's own
           detail and the visual promise that one word fills all three. */}
       <View className="flex-1 justify-center gap-3 px-[22px] pt-[6px]">
+        {/* The category. Small, quiet, above the clues — it is context, not an
+            instruction, and it must not compete with the three words. */}
+        {category ? (
+          <Appear delay={IN.clues - 40} className="items-center pb-[2px]">
+            <View className="rounded-wh-pill bg-wh-chip-surface px-[14px] py-[5px]">
+              <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-chip-text">
+                {category}
+              </Text>
+            </View>
+          </Appear>
+        ) : null}
+
         {clues.map((clue, i) => (
           <Appear key={clue} index={i} delay={IN.clues}>
             <Chunky
@@ -103,20 +148,33 @@ export function GameBoard({
           {Array.from({ length }, (_, i) => {
             const letter = typed[i];
             const isCaret = i === typed.length;
+            const confirmed = correctAt?.has(i) ?? false;
 
             if (letter !== undefined) {
               return (
                 <Chunky
                   key={i}
                   offset={4}
-                  shadowVar="--color-wh-answer-tile-shadow"
+                  shadowVar={
+                    confirmed ? '--color-wh-accent-shadow' : '--color-wh-answer-tile-shadow'
+                  }
                   style={{ width: tileWidth }}
-                  className="h-16 items-center justify-center rounded-wh-card bg-wh-answer-tile"
+                  className={
+                    confirmed
+                      ? 'h-16 items-center justify-center rounded-wh-card bg-wh-accent'
+                      : 'h-16 items-center justify-center rounded-wh-card bg-wh-answer-tile'
+                  }
                 >
                   {/* Keyed on letter AND position, so backspacing and retyping
                       the same letter in the same slot replays the landing. */}
                   <Land key={`${letter}-${i}`}>
-                    <Text className="font-wh-bold text-wh-display text-wh-answer-tile-text">
+                    <Text
+                      className={
+                        confirmed
+                          ? 'font-wh-bold text-wh-display text-wh-on-accent'
+                          : 'font-wh-bold text-wh-display text-wh-answer-tile-text'
+                      }
+                    >
                       {letter}
                     </Text>
                   </Land>

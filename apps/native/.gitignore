@@ -28,3 +28,5 @@ uniwind-types.d.ts
 
 expo-env.d.ts
 # @end expo-cli
+# Scratch scoped typecheck config — never committed.
+tsconfig.scope.json

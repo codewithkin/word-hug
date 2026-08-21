@@ -69,7 +69,8 @@
       "router": {},
       "eas": {
         "projectId": "0770a562-9212-4a59-9042-1a535c7bc086"
-      }
+      },
+      "revenueCatKey": "test_AhlNCoqqVdBZnorUdZPrZaUhwAz"
     },
     "owner": "codewithkin",
     "updates": {
