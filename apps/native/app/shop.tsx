@@ -192,13 +192,20 @@ export default function Shop() {
           </Appear>
 
           {/* ── Packs ───────────────────────────────────────────────────── */}
-          {unowned.length > 0 ? (
-            <Appear delay={140} className="gap-[10px]">
-              <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
-                Packs
-              </Text>
+          {/* Owned packs stay listed with a tick instead of a price — session
+              8f, owner request. Hiding them made the shop look broken after a
+              purchase ("where did Nightfall go?") and left no way back into a
+              bought pack's levels from here. A row you own opens the same
+              detail screen as one you don't; there it reads CONTINUE and the
+              levels are playable. */}
+          <Appear delay={140} className="gap-[10px]">
+            <Text className="font-wh-heavy text-wh-xs uppercase tracking-wh-label text-wh-text-quiet">
+              Packs
+            </Text>
 
-              {unowned.map((pack, i) => (
+            {PACKS.map((pack, i) => {
+              const isOwned = owned.includes(pack.id);
+              return (
                 <Appear key={pack.id} index={i} delay={0}>
                   <ChunkyPressable
                     offset={4}
@@ -207,7 +214,11 @@ export default function Shop() {
                       router.push({ pathname: '/pack/[id]', params: { id: pack.id } })
                     }
                     accessibilityRole="button"
-                    accessibilityLabel={`${pack.name}, ${priceOf(shop?.packs[pack.id]?.packageId, pack.price)}. See what's in it.`}
+                    accessibilityLabel={
+                      isOwned
+                        ? `${pack.name}, purchased. Open your puzzles.`
+                        : `${pack.name}, ${priceOf(shop?.packs[pack.id]?.packageId, pack.price)}. See what's in it.`
+                    }
                     className="flex-row items-center gap-4 rounded-wh-xl bg-wh-surface px-5 py-4"
                   >
                     <View className="flex-1 gap-[2px]">
@@ -215,42 +226,54 @@ export default function Shop() {
                         {pack.name}
                       </Text>
                       <Text className="font-wh-regular text-[13.5px] text-wh-text-muted dark:text-wh-text-quiet">
-                        {packLevelCount(pack.id)} puzzles
+                        {isOwned
+                          ? `Purchased — ${packLevelCount(pack.id)} puzzles`
+                          : `${packLevelCount(pack.id)} puzzles`}
                       </Text>
                     </View>
-                    <Chunky
-                      offset={3}
-                      shadowVar="--color-wh-primary-shadow"
-                      className="rounded-wh-sm bg-wh-primary px-3 py-[5px]"
-                    >
-                      <Text className="font-wh-bold text-wh-base text-wh-on-primary">
-                        {priceOf(shop?.packs[pack.id]?.packageId, pack.price)}
-                      </Text>
-                    </Chunky>
+                    {isOwned ? (
+                      <Chunky
+                        offset={3}
+                        shadowVar="--color-wh-accent-shadow"
+                        className="items-center justify-center rounded-wh-sm bg-wh-accent px-3 py-[6px]"
+                      >
+                        <Text className="font-wh-bold text-wh-base text-wh-on-accent">✓</Text>
+                      </Chunky>
+                    ) : (
+                      <Chunky
+                        offset={3}
+                        shadowVar="--color-wh-primary-shadow"
+                        className="rounded-wh-sm bg-wh-primary px-3 py-[5px]"
+                      >
+                        <Text className="font-wh-bold text-wh-base text-wh-on-primary">
+                          {priceOf(shop?.packs[pack.id]?.packageId, pack.price)}
+                        </Text>
+                      </Chunky>
+                    )}
                   </ChunkyPressable>
                 </Appear>
-              ))}
+              );
+            })}
 
-              {/* The bundle. Once, at the bottom, no badge. */}
-              {unowned.length === PACKS.length ? (
-                <ChunkyPressable
-                  offset={4}
-                  shadowVar="--color-wh-accent-shadow"
-                  onPress={() => void purchase(shop?.bundle?.packageId ?? BUNDLE.packageId, BUNDLE.name)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${BUNDLE.name} for ${priceOf(shop?.bundle?.packageId, BUNDLE.price)}`}
-                  className="flex-row items-center justify-between rounded-wh-xl bg-wh-accent px-5 py-4"
-                >
-                  <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
-                    {BUNDLE.name}
-                  </Text>
-                  <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
-                    {priceOf(shop?.bundle?.packageId, BUNDLE.price)}
-                  </Text>
-                </ChunkyPressable>
-              ) : null}
-            </Appear>
-          ) : null}
+            {/* The bundle. Once, at the bottom, no badge. */}
+            {unowned.length === PACKS.length ? (
+              <ChunkyPressable
+                offset={4}
+                shadowVar="--color-wh-accent-shadow"
+                onPress={() => void purchase(shop?.bundle?.packageId ?? BUNDLE.packageId, BUNDLE.name)}
+                accessibilityRole="button"
+                accessibilityLabel={`${BUNDLE.name} for ${priceOf(shop?.bundle?.packageId, BUNDLE.price)}`}
+                className="flex-row items-center justify-between rounded-wh-xl bg-wh-accent px-5 py-4"
+              >
+                <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
+                  {BUNDLE.name}
+                </Text>
+                <Text className="font-wh-bold text-wh-lg text-wh-on-accent">
+                  {priceOf(shop?.bundle?.packageId, BUNDLE.price)}
+                </Text>
+              </ChunkyPressable>
+            ) : null}
+          </Appear>
 
           {/* ── Restore ─────────────────────────────────────────────────── */}
           <Appear delay={220} className="gap-3 pt-1">
