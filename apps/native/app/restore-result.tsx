@@ -100,9 +100,17 @@ export default function RestoreResult() {
       <ChunkyPressable
         offset={4}
         shadowVar={found ? '--color-wh-primary-shadow' : '--color-wh-surface-shadow'}
-        onPress={() => router.back()}
+        /**
+         * A successful restore lands on the pack list, not back wherever the
+         * restore came from. The shop hides owned packs, so returning there
+         * sent someone hunting for the pack they had just been told was
+         * restored, finding only unowned ones with buy buttons — and buying
+         * the wrong one. The list shows every pack, owned ones wearing their
+         * progress pill, which is the receipt this screen just promised.
+         */
+        onPress={() => (found ? router.replace('/packs') : router.back())}
         accessibilityRole="button"
-        accessibilityLabel={found ? 'Done' : 'Close'}
+        accessibilityLabel={found ? 'Done. See your packs.' : 'Close'}
         className={
           found
             ? 'h-[58px] items-center justify-center rounded-[19px] bg-wh-primary'
